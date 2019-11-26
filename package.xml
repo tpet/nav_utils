@@ -1,0 +1,28 @@
+<package format="2">
+    <name>odom_proc</name>
+    <version>1.0.0</version>
+    <description>
+        Odometry message processing.
+    </description>
+    <maintainer email="tpetricek@gmail.com">Tomas Petricek</maintainer>
+    <license>MIT</license>
+
+    <url>https://gitlab.fel.cvut.cz/cras/subt/common/odom_proc</url>
+    <author>Tomas Petricek</author>
+
+    <buildtool_depend>catkin</buildtool_depend>
+
+    <depend>nav_msgs</depend>
+    <depend>nodelet</depend>
+    <depend>roscpp</depend>
+    <depend>sensor_msgs</depend>
+    <depend>tf2</depend>
+    <depend>tf2_client</depend>
+    <depend>tf2_eigen</depend>
+    <depend>tf2_ros</depend>
+
+    <export>
+        <nodelet plugin="${prefix}/odom_proc_plugins.xml" />
+    </export>
+</package>
+
