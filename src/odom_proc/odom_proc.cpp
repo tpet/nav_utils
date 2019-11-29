@@ -10,12 +10,11 @@ namespace odom_proc
 using nav_msgs::Odometry;
 using geometry_msgs::TransformStamped;
 
-OdometryProc::OdometryProc(ros::NodeHandle &nh):
+OdometryProc::OdometryProc(ros::NodeHandle &nh, ros::NodeHandle &pnh):
         renamed_parent_frame_(""),
         split_child_frame_(""),
         max_age_(std::numeric_limits<double>::infinity())
 {
-    ros::NodeHandle pnh(nh, "~");
     pnh.param("renamed_parent_frame", renamed_parent_frame_, renamed_parent_frame_);
     pnh.param("split_child_frame", split_child_frame_, split_child_frame_);
     pnh.param("max_age", max_age_, max_age_);

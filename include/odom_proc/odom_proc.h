@@ -20,7 +20,7 @@ private:
     ros::Subscriber odom_sub_;
     tf2_client::BufferPtr tf_;
 public:
-    OdometryProc(ros::NodeHandle &nh);
+    OdometryProc(ros::NodeHandle &nh, ros::NodeHandle &pnh);
     nav_msgs::Odometry processOdometry(const nav_msgs::Odometry &odom);
     void odometryReceived(const nav_msgs::Odometry &odom);
 };

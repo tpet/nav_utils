@@ -10,7 +10,7 @@ private:
 public:
     void onInit()
     {
-        odom_proc_ = std::make_unique<OdometryProc>(getNodeHandle());
+        odom_proc_ = std::make_unique<OdometryProc>(getNodeHandle(), getPrivateNodeHandle());
     }
 };
 

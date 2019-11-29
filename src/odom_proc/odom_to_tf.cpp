@@ -14,9 +14,8 @@ geometry_msgs::TransformStamped odometry_to_transform(const nav_msgs::Odometry &
     tf.transform.translation.z = odom.pose.pose.position.z;
 }
 
-OdometryToTransform::OdometryToTransform(ros::NodeHandle &nh)
+OdometryToTransform::OdometryToTransform(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
-    ros::NodeHandle pnh(nh, "~");
     int queue_size = 2;
     pnh.param("queue_size", queue_size, queue_size);
     odom_sub_ = nh.subscribe("odom", static_cast<uint32_t>(queue_size),

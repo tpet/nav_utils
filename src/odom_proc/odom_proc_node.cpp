@@ -3,8 +3,8 @@
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "odom_proc");
-    ros::NodeHandle nh;
-    odom_proc::OdometryProc node(nh);
+    ros::NodeHandle nh, pnh("~");
+    odom_proc::OdometryProc node(nh, pnh);
     ros::spin();
     return 0;
 };

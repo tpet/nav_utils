@@ -15,7 +15,7 @@ private:
     ros::Subscriber odom_sub_;
     tf2_ros::TransformBroadcaster tf_pub_;
 public:
-    OdometryToTransform(ros::NodeHandle &nh);
+    OdometryToTransform(ros::NodeHandle &nh, ros::NodeHandle &pnh);
     void odometryReceived(const nav_msgs::Odometry &msg);
 };
 

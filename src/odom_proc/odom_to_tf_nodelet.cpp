@@ -10,7 +10,7 @@ private:
 public:
     void onInit()
     {
-        odom_to_tf_ = std::make_unique<OdometryToTransform>(getNodeHandle());
+        odom_to_tf_ = std::make_unique<OdometryToTransform>(getNodeHandle(), getPrivateNodeHandle());
     }
 };
 

@@ -3,8 +3,8 @@
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "odom_to_tf");
-    ros::NodeHandle nh;
-    odom_proc::OdometryToTransform node(nh);
+    ros::NodeHandle nh, pnh("~");
+    odom_proc::OdometryToTransform node(nh, pnh);
     ros::spin();
     return 0;
 };
