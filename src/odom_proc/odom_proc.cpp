@@ -12,14 +12,16 @@ using geometry_msgs::TransformStamped;
 
 OdometryProc::OdometryProc(ros::NodeHandle &nh):
         renamed_parent_frame_(""),
-        split_child_frame_("")
+        split_child_frame_(""),
+        max_age_(std::numeric_limits<double>::infinity())
 {
     ros::NodeHandle pnh(nh, "~");
     pnh.param("renamed_parent_frame", renamed_parent_frame_, renamed_parent_frame_);
     pnh.param("split_child_frame", split_child_frame_, split_child_frame_);
+    pnh.param("max_age", max_age_, max_age_);
     int queue_size = 2;
     odom_out_pub_ = nh.advertise<nav_msgs::Odometry>("odom_out", 2);
-    tf_ = tf2_client::get_buffer(nh);
+    tf_ = tf2_client::get_buffer(nh, pnh);
     odom_sub_ = nh.subscribe("odom", static_cast<uint32_t>(queue_size),
                              &OdometryProc::odometryReceived, this);
 }
