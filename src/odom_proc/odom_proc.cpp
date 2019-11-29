@@ -51,12 +51,18 @@ void OdometryProc::odometryReceived(const Odometry &odom)
     double age = (ros::Time::now() - odom.header.stamp).toSec();
     if (age > max_age_)
     {
-        ROS_WARN("Skipping odometry too old (%.3g s > %.3g s).",
+        ROS_WARN_THROTTLE(1.0, "Skipping odometry too old (%.3g s > %.3g s).",
                 age, max_age_);
         return;
     }
-    Odometry odom_out = processOdometry(odom);
-    odom_out_pub_.publish(odom_out);
+    try {
+        Odometry odom_out = processOdometry(odom);
+        odom_out_pub_.publish(odom_out);
+    }
+    catch (tf2::TransformException &ex)
+    {
+        ROS_WARN_THROTTLE(1.0, "Transform lookup failed: %s.", ex.what());
+    }
 }
 
 }
