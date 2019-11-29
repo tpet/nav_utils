@@ -6,4 +6,11 @@
             Odometry to tf transform conversion.
         </description>
     </class>
+    <class name="odom_proc/odom_proc"
+           type="odom_proc::OdometryProcNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Odometry message processing.
+        </description>
+    </class>
 </library>

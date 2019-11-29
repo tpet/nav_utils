@@ -2,7 +2,7 @@
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "odom_to_tf");
+    ros::init(argc, argv, "odom_proc");
     ros::NodeHandle nh;
     odom_proc::OdometryProc node(nh);
     ros::spin();

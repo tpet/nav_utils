@@ -2,16 +2,17 @@
     <name>odom_proc</name>
     <version>1.0.0</version>
     <description>
-        Odometry message processing.
+        Odometry and tf message processing.
     </description>
     <maintainer email="tpetricek@gmail.com">Tomas Petricek</maintainer>
     <license>MIT</license>
 
-    <url>https://gitlab.fel.cvut.cz/cras/subt/common/odom_proc</url>
+    <url>https://github.com/tpet/odom_proc</url>
     <author>Tomas Petricek</author>
 
     <buildtool_depend>catkin</buildtool_depend>
 
+    <depend>geometry_msgs</depend>
     <depend>nav_msgs</depend>
     <depend>nodelet</depend>
     <depend>roscpp</depend>

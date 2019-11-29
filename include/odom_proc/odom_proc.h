@@ -12,14 +12,16 @@ namespace odom_proc
 {
 class OdometryProc {
 private:
-    std::string child_frame_;
-    Eigen::AffineCompact3d last_;
-    ros::Publisher odom_split_pub_;
+    std::string renamed_parent_frame_;
+    std::string split_child_frame_;
+    double max_age_;
+    Eigen::Isometry3d  last_;
+    ros::Publisher odom_out_pub_;
     ros::Subscriber odom_sub_;
-//    tf2_ros::BufferInterface &tf_;
     tf2_client::BufferPtr tf_;
 public:
     OdometryProc(ros::NodeHandle &nh);
+    nav_msgs::Odometry processOdometry(const nav_msgs::Odometry &odom);
     void odometryReceived(const nav_msgs::Odometry &odom);
 };
 }
