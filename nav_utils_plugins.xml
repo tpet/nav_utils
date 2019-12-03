@@ -1,20 +1,20 @@
-<library path="lib/libodom_proc_plugins">
-    <class name="odom_proc/odom_to_tf"
-           type="odom_proc::OdometryToTransformNodelet"
+<library path="lib/libnav_utils_plugins">
+    <class name="nav_utils/odom_to_tf"
+           type="nav_utils::OdometryToTransformNodelet"
            base_class_type="nodelet::Nodelet">
         <description>
             Odometry to tf transform conversion.
         </description>
     </class>
-    <class name="odom_proc/odom_proc"
-           type="odom_proc::OdometryProcNodelet"
+    <class name="nav_utils/odom_proc"
+           type="nav_utils::OdometryProcNodelet"
            base_class_type="nodelet::Nodelet">
         <description>
             Odometry message processing.
         </description>
     </class>
-    <class name="odom_proc/tf_to_odom"
-           type="odom_proc::TransformToOdometryNodelet"
+    <class name="nav_utils/tf_to_odom"
+           type="nav_utils::TransformToOdometryNodelet"
            base_class_type="nodelet::Nodelet">
         <description>
             Tf Transform to odometry conversion.
