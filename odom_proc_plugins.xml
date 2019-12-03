@@ -13,4 +13,11 @@
             Odometry message processing.
         </description>
     </class>
+    <class name="odom_proc/tf_to_odom"
+           type="odom_proc::TransformToOdometryNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Tf Transform to odometry conversion.
+        </description>
+    </class>
 </library>

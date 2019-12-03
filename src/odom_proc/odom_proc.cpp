@@ -6,10 +6,6 @@
 
 namespace odom_proc
 {
-
-using nav_msgs::Odometry;
-using geometry_msgs::TransformStamped;
-
 OdometryProc::OdometryProc(ros::NodeHandle &nh, ros::NodeHandle &pnh):
         renamed_parent_frame_(""),
         split_child_frame_(""),
@@ -18,21 +14,20 @@ OdometryProc::OdometryProc(ros::NodeHandle &nh, ros::NodeHandle &pnh):
     pnh.param("renamed_parent_frame", renamed_parent_frame_, renamed_parent_frame_);
     pnh.param("split_child_frame", split_child_frame_, split_child_frame_);
     pnh.param("max_age", max_age_, max_age_);
-    int queue_size = 2;
-    odom_out_pub_ = nh.advertise<nav_msgs::Odometry>("odom_out", 2);
+
+    odom_out_pub_ = nh.advertise<nav_msgs::Odometry>("odom_out", 5);
     tf_ = tf2_client::get_buffer(nh, pnh);
-    odom_sub_ = nh.subscribe("odom", static_cast<uint32_t>(queue_size),
-                             &OdometryProc::odometryReceived, this);
+    odom_sub_ = nh.subscribe("odom", 5, &OdometryProc::odometryReceived, this);
 }
 
-Odometry OdometryProc::processOdometry(const Odometry &odom)
+nav_msgs::Odometry OdometryProc::processOdometry(const nav_msgs::Odometry &odom)
 {
-    Odometry odom_out = odom;
+    nav_msgs::Odometry odom_out = odom;
     if (!renamed_parent_frame_.empty())
         odom_out.header.frame_id = renamed_parent_frame_;
     if (split_child_frame_.empty())
         return odom_out;
-    TransformStamped tf_cr = tf_->lookupTransform(
+    geometry_msgs::TransformStamped tf_cr = tf_->lookupTransform(
             odom.child_frame_id,
             split_child_frame_,
             odom_out.header.stamp,
@@ -46,7 +41,7 @@ Odometry OdometryProc::processOdometry(const Odometry &odom)
     return odom_out;
 }
 
-void OdometryProc::odometryReceived(const Odometry &odom)
+void OdometryProc::odometryReceived(const nav_msgs::Odometry &odom)
 {
     double age = (ros::Time::now() - odom.header.stamp).toSec();
     if (age > max_age_)
@@ -56,7 +51,7 @@ void OdometryProc::odometryReceived(const Odometry &odom)
         return;
     }
     try {
-        Odometry odom_out = processOdometry(odom);
+        nav_msgs::Odometry odom_out = processOdometry(odom);
         odom_out_pub_.publish(odom_out);
     }
     catch (tf2::TransformException &ex)

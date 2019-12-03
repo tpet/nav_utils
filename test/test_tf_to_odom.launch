@@ -1,0 +1,30 @@
+<launch>
+    <param name="use_sim_time" value="true"/>
+
+    <include file="$(find nifti_drivers_launchers)/launch/tf_server.launch"/>
+
+    <!--
+    /home/petrito1/workspace/data/subt/dpp/2019-11-28/dfki_robot/ugv_2019-11-28-11-20-42.bag
+    /media/petrito1/tp-t5/data/subt/dpp/2019-11-28/dfki_robot/ugv_2019-11-28-11-20-42.bag
+    -->
+    <node name="play" pkg="rosbag" type="play"
+          args="--clock
+                /media/petrito1/tp-t5/data/subt/dpp/2019-11-28/dfki_robot/ugv_2019-11-28-11-20-42.bag"/>
+
+    <node name="tf_to_odom" pkg="odom_proc" type="tf_to_odom" output="screen">
+        <param name="parent_frame"  value="odom"/>
+        <param name="child_frame"   value="laser"/>
+        <param name="no_wait_frame" value="base_link"/>
+        <param name="timeout"       value="1.0"/>
+        <!--<param name="timer_freq"    value="0.0"/>-->
+        <param name="timer_freq"    value="50.0"/>
+
+        <!--<param name="tf_server"          value="tf/server"/>-->
+        <!--<param name="tf_check_frequency" value="50.0"/>-->
+
+        <remap from="trigger" to="~/trigger"/>
+        <!--<remap from="trigger" to="scan"/>-->
+        <remap from="pose"    to="laser_pose"/>
+        <remap from="odom"    to="laser_odom"/>
+    </node>
+</launch>

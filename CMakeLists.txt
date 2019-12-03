@@ -8,12 +8,14 @@ set(CATKIN_DEPS
     geometry_msgs
     nav_msgs
     nodelet
+    ros_type_introspection
     roscpp
     sensor_msgs
     tf2
     tf2_client
     tf2_eigen
     tf2_ros
+    topic_tools
 )
 find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPS})
 include_directories(${catkin_INCLUDE_DIRS})
@@ -36,11 +38,19 @@ add_executable(odom_to_tf
 )
 target_link_libraries(odom_to_tf ${catkin_LIBRARIES})
 
+add_executable(tf_to_odom
+    src/odom_proc/tf_to_odom.cpp
+    src/odom_proc/tf_to_odom_node.cpp
+)
+target_link_libraries(tf_to_odom ${catkin_LIBRARIES})
+
 add_library(${PROJECT_NAME}_plugins
     src/odom_proc/odom_proc.cpp
     src/odom_proc/odom_proc_nodelet.cpp
     src/odom_proc/odom_to_tf.cpp
     src/odom_proc/odom_to_tf_nodelet.cpp
+    src/odom_proc/tf_to_odom.cpp
+    src/odom_proc/tf_to_odom_nodelet.cpp
 )
 target_link_libraries(${PROJECT_NAME}_plugins ${catkin_LIBRARIES})
 
@@ -48,6 +58,7 @@ install(
     TARGETS
         odom_proc
         odom_to_tf
+        tf_to_odom
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(
