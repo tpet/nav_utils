@@ -1,30 +1,30 @@
 <launch>
+    <arg name="tf_server" default="false"/>
+    <arg name="timer" default="false"/>
+    <arg name="bag" value="$(dirname)/test.bag"/>
+
     <param name="use_sim_time" value="true"/>
 
-    <include file="$(find nifti_drivers_launchers)/launch/tf_server.launch"/>
+    <node name="play" pkg="rosbag" type="play" args="--clock $(arg bag) --hz 1000.0"/>
 
-    <!--
-    /home/petrito1/workspace/data/subt/dpp/2019-11-28/dfki_robot/ugv_2019-11-28-11-20-42.bag
-    /media/petrito1/tp-t5/data/subt/dpp/2019-11-28/dfki_robot/ugv_2019-11-28-11-20-42.bag
-    -->
-    <node name="play" pkg="rosbag" type="play"
-          args="--clock
-                /media/petrito1/tp-t5/data/subt/dpp/2019-11-28/dfki_robot/ugv_2019-11-28-11-20-42.bag"/>
+    <include if="$(arg tf_server)" file="$(find tf2_client)/launch/server.launch"/>
 
     <node name="tf_to_odom" pkg="odom_proc" type="tf_to_odom" output="screen">
         <param name="parent_frame"  value="odom"/>
         <param name="child_frame"   value="laser"/>
         <param name="no_wait_frame" value="base_link"/>
         <param name="timeout"       value="1.0"/>
-        <!--<param name="timer_freq"    value="0.0"/>-->
-        <param name="timer_freq"    value="50.0"/>
 
-        <!--<param name="tf_server"          value="tf/server"/>-->
-        <!--<param name="tf_check_frequency" value="50.0"/>-->
+        <param if="$(arg timer)"     name="timer_freq" value="0.0"/>
+        <param unless="$(arg timer)" name="timer_freq" value="50.0"/>
 
-        <remap from="trigger" to="~/trigger"/>
-        <!--<remap from="trigger" to="scan"/>-->
-        <remap from="pose"    to="laser_pose"/>
+        <param if="$(arg tf_server)" name="tf_server"          value="tf/server"/>
+        <param if="$(arg tf_server)" name="tf_check_frequency" value="100.0"/>
+
+        <remap if="$(arg timer)" from="trigger" to="~/trigger"/>
+        <remap if="$(arg timer)" from="trigger" to="scan"/>
         <remap from="odom"    to="laser_odom"/>
     </node>
+
+    <node name="hz" pkg="rostopic" type="rostopic" args="hz laser_odom" output="screen"/>
 </launch>

@@ -1,8 +1,8 @@
 #include <nodelet/nodelet.h>
-#include <odom_proc/odom_proc.h>
+#include <nav_utils/odom_proc.h>
 #include <pluginlib/class_list_macros.h>
 
-namespace odom_proc {
+namespace nav_utils {
 
 class OdometryProcNodelet: public nodelet::Nodelet {
 private:
@@ -16,4 +16,4 @@ public:
 
 }
 
-PLUGINLIB_EXPORT_CLASS(odom_proc::OdometryProcNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(nav_utils::OdometryProcNodelet, nodelet::Nodelet)

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(odom_proc)
+project(nav_utils)
 
 find_package (Eigen3 REQUIRED NO_MODULE)
 include_directories(${Eigen3_INCLUDE_DIRS})
@@ -8,9 +8,9 @@ set(CATKIN_DEPS
     geometry_msgs
     nav_msgs
     nodelet
-    ros_type_introspection
     roscpp
     sensor_msgs
+    std_msgs
     tf2
     tf2_client
     tf2_eigen
@@ -27,30 +27,30 @@ catkin_package(
 include_directories(include)
 
 add_executable(odom_proc
-    src/odom_proc/odom_proc.cpp
-    src/odom_proc/odom_proc_node.cpp
+    src/nav_utils/odom_proc.cpp
+    src/nav_utils/odom_proc_node.cpp
 )
 target_link_libraries(odom_proc ${catkin_LIBRARIES})
 
 add_executable(odom_to_tf
-    src/odom_proc/odom_to_tf.cpp
-    src/odom_proc/odom_to_tf_node.cpp
+    src/nav_utils/odom_to_tf.cpp
+    src/nav_utils/odom_to_tf_node.cpp
 )
 target_link_libraries(odom_to_tf ${catkin_LIBRARIES})
 
 add_executable(tf_to_odom
-    src/odom_proc/tf_to_odom.cpp
-    src/odom_proc/tf_to_odom_node.cpp
+    src/nav_utils/tf_to_odom.cpp
+    src/nav_utils/tf_to_odom_node.cpp
 )
 target_link_libraries(tf_to_odom ${catkin_LIBRARIES})
 
 add_library(${PROJECT_NAME}_plugins
-    src/odom_proc/odom_proc.cpp
-    src/odom_proc/odom_proc_nodelet.cpp
-    src/odom_proc/odom_to_tf.cpp
-    src/odom_proc/odom_to_tf_nodelet.cpp
-    src/odom_proc/tf_to_odom.cpp
-    src/odom_proc/tf_to_odom_nodelet.cpp
+    src/nav_utils/odom_proc.cpp
+    src/nav_utils/odom_proc_nodelet.cpp
+    src/nav_utils/odom_to_tf.cpp
+    src/nav_utils/odom_to_tf_nodelet.cpp
+    src/nav_utils/tf_to_odom.cpp
+    src/nav_utils/tf_to_odom_nodelet.cpp
 )
 target_link_libraries(${PROJECT_NAME}_plugins ${catkin_LIBRARIES})
 

@@ -1,8 +1,8 @@
 #include <nodelet/nodelet.h>
-#include <odom_proc/odom_to_tf.h>
+#include <nav_utils/odom_to_tf.h>
 #include <pluginlib/class_list_macros.h>
 
-namespace odom_proc {
+namespace nav_utils {
 
 class OdometryToTransformNodelet: public nodelet::Nodelet {
 private:
@@ -16,4 +16,4 @@ public:
 
 }
 
-PLUGINLIB_EXPORT_CLASS(odom_proc::OdometryToTransformNodelet, nodelet::Nodelet)
+PLUGINLIB_EXPORT_CLASS(nav_utils::OdometryToTransformNodelet, nodelet::Nodelet)

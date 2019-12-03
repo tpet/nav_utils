@@ -1,7 +1,7 @@
-#include <odom_proc/tf_to_odom.h>
+#include <nav_utils/tf_to_odom.h>
 #include <tf2_eigen/tf2_eigen.h>
 
-namespace odom_proc
+namespace nav_utils
 {
 geometry_msgs::Pose transform_to_pose(const geometry_msgs::Transform &tf)
 {
@@ -69,9 +69,14 @@ geometry_msgs::Pose TransformToOdometry::lookupPose(const ros::Time &stamp, cons
     ros::Time no_wait;
     geometry_msgs::TransformStamped tf_pn = tf_->lookupTransform(parent_frame_, no_wait_frame_, no_wait,
             ros::Duration(timeout_));
+//    geometry_msgs::TransformStamped tf_pn;
     Eigen::Isometry3d T_pn = tf2::transformToEigen(tf_pn.transform);
+    // Waiting lookup slows it to around 13 Hz when using timer.
     geometry_msgs::TransformStamped tf_nc = tf_->lookupTransform(no_wait_frame_, child_frame, stamp,
             ros::Duration(timeout_));
+//    geometry_msgs::TransformStamped tf_nc = tf_->lookupTransform(no_wait_frame_, child_frame, no_wait,
+//            ros::Duration(timeout_));
+//    geometry_msgs::TransformStamped tf_nc;
     Eigen::Isometry3d T_nc = tf2::transformToEigen(tf_nc.transform);
     Eigen::Isometry3d T_pc = T_pn * T_nc;
     geometry_msgs::Pose pose;
@@ -92,7 +97,7 @@ void TransformToOdometry::publishMessages(const ros::Time &stamp, const std::str
 void TransformToOdometry::triggerReceived(const topic_tools::ShapeShifter &msg)
 {
     std_msgs::Header header = extract_header(msg);
-    ROS_INFO("trigger (header: %s): delay: %.3g s",
+    ROS_DEBUG("trigger (header: %s): delay: %.3g s",
             header.frame_id.c_str(), (ros::Time::now() - header.stamp).toSec());
     try
     {
@@ -108,7 +113,7 @@ void TransformToOdometry::triggerReceived(const topic_tools::ShapeShifter &msg)
 
 void TransformToOdometry::timerCallback(const ros::TimerEvent& event)
 {
-    ROS_INFO("timer: delay: %.3g s, expected: %.3g s, real: %.3g s",
+    ROS_DEBUG("timer: delay: %.3g s, expected: %.3g s, real: %.3g s",
             (ros::Time::now() - event.current_expected).toSec(),
             event.current_expected.toSec(), event.current_real.toSec());
     try

@@ -1,5 +1,5 @@
-#ifndef ODOM_PROC_ODOM_PROC_H
-#define ODOM_PROC_ODOM_PROC_H
+#ifndef NAV_UTILS_ODOM_PROC_H
+#define NAV_UTILS_ODOM_PROC_H
 
 #include <Eigen/Eigen>
 #include <geometry_msgs/TransformStamped.h>
@@ -8,7 +8,7 @@
 #include <tf2_ros/buffer_interface.h>
 #include <tf2_client/tf2_client.h>
 
-namespace odom_proc
+namespace nav_utils
 {
 class OdometryProc {
 private:
@@ -26,4 +26,4 @@ public:
 };
 }
 
-#endif //ODOM_PROC_ODOM_PROC_H
+#endif //NAV_UTILS_ODOM_PROC_H

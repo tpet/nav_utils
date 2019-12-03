@@ -1,6 +1,6 @@
-#include <odom_proc/odom_to_tf.h>
+#include <nav_utils/odom_to_tf.h>
 
-namespace odom_proc
+namespace nav_utils
 {
 geometry_msgs::Transform pose_to_transform(const geometry_msgs::Pose &pose)
 {
@@ -23,10 +23,7 @@ geometry_msgs::TransformStamped odometry_to_transform(const nav_msgs::Odometry &
 
 OdometryToTransform::OdometryToTransform(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
-    int queue_size = 2;
-    pnh.param("queue_size", queue_size, queue_size);
-    odom_sub_ = nh.subscribe("odom", static_cast<uint32_t>(queue_size),
-            &OdometryToTransform::odometryReceived, this);
+    odom_sub_ = nh.subscribe("odom", 5, &OdometryToTransform::odometryReceived, this);
 }
 
 void OdometryToTransform::odometryReceived(const nav_msgs::Odometry &msg)

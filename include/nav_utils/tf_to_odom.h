@@ -1,13 +1,16 @@
-#ifndef ODOM_PROC_TF_TO_ODOM_H
-#define ODOM_PROC_TF_TO_ODOM_H
+#ifndef NAV_UTILS_TF_TO_ODOM_H
+#define NAV_UTILS_TF_TO_ODOM_H
 
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Transform.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
-#include <ros_type_introspection/ros_introspection.hpp>
+#include <std_msgs/Header.h>
 #include <topic_tools/shape_shifter.h>
 #include <tf2_client/tf2_client.h>
 
-namespace odom_proc
+namespace nav_utils
 {
 geometry_msgs::Pose transform_to_pose(const geometry_msgs::Transform &tf);
 nav_msgs::Odometry transform_to_odometry(const geometry_msgs::TransformStamped &odom);
@@ -19,7 +22,6 @@ private:
     std::string no_wait_frame_;
     double timeout_;
     double timer_freq_;
-    RosIntrospection::Parser parser;
     ros::Timer timer_;
     ros::Publisher odom_pub_;
     tf2_client::BufferPtr tf_;
@@ -35,4 +37,4 @@ public:
 };
 }
 
-#endif //ODOM_PROC_TF_TO_ODOM_H
+#endif //NAV_UTILS_TF_TO_ODOM_H

@@ -1,10 +1,10 @@
-#include <odom_proc/odom_proc.h>
+#include <nav_utils/odom_proc.h>
 #include <tf2_client/tf2_client.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_ros/buffer.h>
 #include <message_filters/chain.h>
 
-namespace odom_proc
+namespace nav_utils
 {
 OdometryProc::OdometryProc(ros::NodeHandle &nh, ros::NodeHandle &pnh):
         renamed_parent_frame_(""),

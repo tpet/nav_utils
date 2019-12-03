@@ -1,11 +1,14 @@
-#ifndef ODOM_PROC_ODOM_TO_TF_H
-#define ODOM_PROC_ODOM_TO_TF_H
+#ifndef NAV_UTILS_ODOM_TO_TF_H
+#define NAV_UTILS_ODOM_TO_TF_H
 
+#include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Transform.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/ros.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-namespace odom_proc
+namespace nav_utils
 {
 geometry_msgs::Transform pose_to_transform(const geometry_msgs::Pose &pose);
 geometry_msgs::TransformStamped odometry_to_transform(const nav_msgs::Odometry &odom);
@@ -20,4 +23,4 @@ public:
 };
 }
 
-#endif //ODOM_PROC_ODOM_TO_TF_H
+#endif //NAV_UTILS_ODOM_TO_TF_H

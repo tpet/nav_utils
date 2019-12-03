@@ -1,13 +1,13 @@
 <package format="2">
-    <name>odom_proc</name>
+    <name>nav_utils</name>
     <version>1.0.0</version>
     <description>
-        Odometry and tf message processing.
+        Navigation utilities, odometry and tf processing etc.
     </description>
     <maintainer email="tpetricek@gmail.com">Tomas Petricek</maintainer>
     <license>MIT</license>
 
-    <url>https://github.com/tpet/odom_proc</url>
+    <url>https://github.com/tpet/nav_utils</url>
     <author>Tomas Petricek</author>
 
     <buildtool_depend>catkin</buildtool_depend>
@@ -15,9 +15,9 @@
     <depend>geometry_msgs</depend>
     <depend>nav_msgs</depend>
     <depend>nodelet</depend>
-    <depend>ros_type_introspection</depend>
     <depend>roscpp</depend>
     <depend>sensor_msgs</depend>
+    <depend>std_msgs</depend>
     <depend>tf2</depend>
     <depend>tf2_client</depend>
     <depend>tf2_eigen</depend>
@@ -25,7 +25,7 @@
     <depend>topic_tools</depend>
 
     <export>
-        <nodelet plugin="${prefix}/odom_proc_plugins.xml" />
+        <nodelet plugin="${prefix}/nav_utils_plugins.xml" />
     </export>
 </package>
 
