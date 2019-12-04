@@ -9,20 +9,21 @@
 
     <include if="$(arg tf_server)" file="$(find tf2_client)/launch/server.launch"/>
 
-    <node name="tf_to_odom" pkg="odom_proc" type="tf_to_odom" output="screen">
+    <node name="tf_to_odom" pkg="nav_utils" type="tf_to_odom" output="screen">
         <param name="parent_frame"  value="odom"/>
         <param name="child_frame"   value="laser"/>
         <param name="no_wait_frame" value="base_link"/>
         <param name="timeout"       value="1.0"/>
 
-        <param if="$(arg timer)"     name="timer_freq" value="0.0"/>
-        <param unless="$(arg timer)" name="timer_freq" value="50.0"/>
+        <param     if="$(arg timer)" name="timer_freq" value="50.0"/>
+        <param unless="$(arg timer)" name="timer_freq" value="0.0"/>
 
         <param if="$(arg tf_server)" name="tf_server"          value="tf/server"/>
         <param if="$(arg tf_server)" name="tf_check_frequency" value="100.0"/>
 
-        <remap if="$(arg timer)" from="trigger" to="~/trigger"/>
-        <remap if="$(arg timer)" from="trigger" to="scan"/>
+        <remap     if="$(arg timer)" from="trigger" to="~/trigger"/>
+        <remap unless="$(arg timer)" from="trigger" to="scan"/>
+        
         <remap from="odom"    to="laser_odom"/>
     </node>
 
