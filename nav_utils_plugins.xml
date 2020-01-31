@@ -20,4 +20,11 @@
             Tf Transform to odometry conversion.
         </description>
     </class>
+    <class name="nav_utils/tf_fast_repeater"
+           type="nav_utils::TfFastRepeaterNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Repeat a TF on a higher frequency.
+        </description>
+    </class>
 </library>

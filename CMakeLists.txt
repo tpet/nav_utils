@@ -44,11 +44,19 @@ add_executable(tf_to_odom
 )
 target_link_libraries(tf_to_odom ${catkin_LIBRARIES})
 
+add_executable(tf_fast_repeater
+    src/nav_utils/tf_fast_repeater.cpp
+    src/nav_utils/tf_fast_repeater_node.cpp
+)
+target_link_libraries(tf_fast_repeater ${catkin_LIBRARIES})
+
 add_library(${PROJECT_NAME}_plugins
     src/nav_utils/odom_proc.cpp
     src/nav_utils/odom_proc_nodelet.cpp
     src/nav_utils/odom_to_tf.cpp
     src/nav_utils/odom_to_tf_nodelet.cpp
+    src/nav_utils/tf_fast_repeater.cpp
+    src/nav_utils/tf_fast_repeater_nodelet.cpp
     src/nav_utils/tf_to_odom.cpp
     src/nav_utils/tf_to_odom_nodelet.cpp
 )
