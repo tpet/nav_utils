@@ -1,0 +1,4 @@
+- git:
+    local-name: tf2_client
+    uri: https://github.com/tpet/tf2_client.git
+    version: master

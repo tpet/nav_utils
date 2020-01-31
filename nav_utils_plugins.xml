@@ -27,4 +27,11 @@
             Repeat a TF on a higher frequency.
         </description>
     </class>
+    <class name="nav_utils/tf_copy"
+           type="nav_utils::TfCopyNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Copy a transform elsewhere.
+        </description>
+    </class>
 </library>
