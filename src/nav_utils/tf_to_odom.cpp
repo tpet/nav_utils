@@ -22,20 +22,28 @@ nav_msgs::Odometry transform_to_odometry(const geometry_msgs::TransformStamped &
     return odom;
 }
 
-TransformToOdometry::TransformToOdometry(ros::NodeHandle &nh, ros::NodeHandle &pnh)
+TransformToOdometry::TransformToOdometry(ros::NodeHandle &nh, ros::NodeHandle &pnh):
+        parent_frame_(""),
+        child_frame_(""),
+        no_wait_frame_(""),
+        timeout_(1.0),
+        timer_freq_(0.0),
+        trigger_queue_size_(5),
+        odom_queue_size_(5)
 {
     pnh.param("parent_frame", parent_frame_, parent_frame_);
     pnh.param("child_frame", child_frame_, child_frame_);
     pnh.param("no_wait_frame", no_wait_frame_, no_wait_frame_);
     pnh.param("timeout", timeout_, timeout_);
     pnh.param("timer_freq", timer_freq_, timer_freq_);
-    odom_pub_ = nh.advertise<nav_msgs::Odometry>("odom", 5);
+    pnh.param("odom_queue_size", odom_queue_size_, odom_queue_size_);
+    pnh.param("trigger_queue_size", trigger_queue_size_, trigger_queue_size_);
+    odom_pub_ = nh.advertise<nav_msgs::Odometry>("odom", odom_queue_size_);
     tf_ = tf2_client::get_buffer(nh, pnh);
-    trigger_sub_ = nh.subscribe("trigger", 5, &TransformToOdometry::triggerReceived, this);
+    trigger_sub_ = nh.subscribe("trigger", trigger_queue_size_, &TransformToOdometry::triggerReceived, this);
     if (timer_freq_ > 0.0)
     {
         ros::Duration period(1. / timer_freq_);
-        std::cout << "period: " << period.toSec() << std::endl;
         timer_ = nh.createTimer(period, &TransformToOdometry::timerCallback, this);
     }
 }

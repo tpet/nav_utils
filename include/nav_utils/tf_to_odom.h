@@ -22,6 +22,8 @@ private:
     std::string no_wait_frame_;
     double timeout_;
     double timer_freq_;
+    int trigger_queue_size_;
+    int odom_queue_size_;
     ros::Timer timer_;
     ros::Publisher odom_pub_;
     tf2_client::BufferPtr tf_;
