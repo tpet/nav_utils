@@ -40,7 +40,7 @@ TransformToOdometry::TransformToOdometry(ros::NodeHandle &nh, ros::NodeHandle &p
     pnh.param("timer_freq", timer_freq_, timer_freq_);
     pnh.param("odom_queue_size", odom_queue_size_, odom_queue_size_);
     pnh.param("trigger_queue_size", trigger_queue_size_, trigger_queue_size_);
-    pnh.param("sleep_after_publish", sleep_after_trigger_, sleep_after_trigger_);
+    pnh.param("sleep_after_trigger", sleep_after_trigger_, sleep_after_trigger_);
     odom_pub_ = nh.advertise<nav_msgs::Odometry>("odom", static_cast<uint32_t>(odom_queue_size_));
     tf_ = tf2_client::get_buffer(nh, pnh);
     trigger_sub_ = nh.subscribe("trigger", static_cast<uint32_t>(trigger_queue_size_),
