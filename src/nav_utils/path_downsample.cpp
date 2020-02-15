@@ -17,17 +17,20 @@ public:
         sub_ = nh_.subscribe("path", 5, &PathDownsample::messageReceived, this);
     }
 
-    void messageReceived(const nav_msgs::Path &msg)
+    void messageReceived(const nav_msgs::Path& msg)
     {
         PointPathInt32 out;
         out.header = msg.header;
         out.positions.reserve(msg.poses.size() / (1 + skip_) + 1);
-        for (size_t i = 0; i < msg.poses.size() - 1; i += 1 + skip_) {
-            PointInt32 p;
-            p.x = int(msg.poses[i].pose.position.x * 1000);
-            p.y = int(msg.poses[i].pose.position.y * 1000);
-            p.z = int(msg.poses[i].pose.position.z * 1000);
-            out.positions.push_back(p);
+        if (!msg.poses.empty())
+        {
+            for (size_t i = 0; i < msg.poses.size() - 1; i += 1 + skip_) {
+                PointInt32 p;
+                p.x = int(msg.poses[i].pose.position.x * 1000);
+                p.y = int(msg.poses[i].pose.position.y * 1000);
+                p.z = int(msg.poses[i].pose.position.z * 1000);
+                out.positions.push_back(p);
+            }
         }
         // Get the last position we missed above if there is any.
         if (!msg.poses.empty())
