@@ -74,10 +74,10 @@ add_executable(point_downsample
 add_dependencies(point_downsample nav_utils_generate_messages)
 target_link_libraries(point_downsample ${catkin_LIBRARIES})
 
-add_executable(test_timer_pub
-    test/test_timer_pub.cpp
-)
-target_link_libraries(test_timer_pub ${catkin_LIBRARIES})
+#add_executable(test_timer_pub
+#    test/test_timer_pub.cpp
+#)
+#target_link_libraries(test_timer_pub ${catkin_LIBRARIES})
 
 add_library(${PROJECT_NAME}_plugins
     src/nav_utils/odom_proc.cpp
