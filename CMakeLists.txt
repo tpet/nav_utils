@@ -20,6 +20,12 @@ set(CATKIN_DEPS
 find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPS})
 include_directories(${catkin_INCLUDE_DIRS})
 
+add_message_files(FILES
+    PointInt32.msg
+    PointPathInt32.msg
+)
+generate_messages(DEPENDENCIES geometry_msgs std_msgs)
+
 catkin_package(
     CATKIN_DEPENDS ${CATKIN_DEPS}
     LIBRARIES ${PROJECT_NAME}_plugins
@@ -55,6 +61,23 @@ add_executable(tf_copy
     src/nav_utils/tf_copy_node.cpp
 )
 target_link_libraries(tf_copy ${catkin_LIBRARIES})
+
+add_executable(path_downsample
+    src/nav_utils/path_downsample.cpp
+)
+add_dependencies(path_downsample nav_utils_generate_messages)
+target_link_libraries(path_downsample ${catkin_LIBRARIES})
+
+add_executable(point_downsample
+    src/nav_utils/path_upsample.cpp
+)
+add_dependencies(point_downsample nav_utils_generate_messages)
+target_link_libraries(point_downsample ${catkin_LIBRARIES})
+
+add_executable(test_timer_pub
+    test/test_timer_pub.cpp
+)
+target_link_libraries(test_timer_pub ${catkin_LIBRARIES})
 
 add_library(${PROJECT_NAME}_plugins
     src/nav_utils/odom_proc.cpp
