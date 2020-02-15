@@ -21,7 +21,9 @@ find_package(catkin REQUIRED COMPONENTS ${CATKIN_DEPS})
 include_directories(${catkin_INCLUDE_DIRS})
 
 add_message_files(FILES
+    PointInt16.msg
     PointInt32.msg
+    PointPathInt16.msg
     PointPathInt32.msg
 )
 generate_messages(DEPENDENCIES geometry_msgs std_msgs)

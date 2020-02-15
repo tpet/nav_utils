@@ -1,6 +1,8 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
+#include <nav_utils/PointPathInt16.h>
 #include <nav_utils/PointPathInt32.h>
+#include <topic_tools/shape_shifter.h>
 
 namespace nav_utils
 {
@@ -15,7 +17,8 @@ public:
         sub_ = nh_.subscribe("point_path", 5, &PathUpsample::messageReceived, this);
     }
 
-    void messageReceived(const PointPathInt32& msg)
+    template<typename Path>
+    void convertAndPublish(const Path& msg)
     {
         nav_msgs::Path out;
         out.header = msg.header;
@@ -24,14 +27,27 @@ public:
         {
             geometry_msgs::PoseStamped pose;
             pose.header = msg.header;
-            pose.pose.position.x = double(p.x) / 1000;
-            pose.pose.position.y = double(p.y) / 1000;
-            pose.pose.position.z = double(p.z) / 1000;
+            pose.pose.position.x = double(p.x) * msg.unit;
+            pose.pose.position.y = double(p.y) * msg.unit;
+            pose.pose.position.z = double(p.z) * msg.unit;
             pose.pose.orientation.w = 1.0;
             out.poses.push_back(pose);
         }
         pub_.publish(out);
     }
+
+    void messageReceived(const topic_tools::ShapeShifter::ConstPtr& msg)
+    {
+        if (msg->getDataType() == "nav_utils/PointPathInt16")
+        {
+            convertAndPublish(*msg->instantiate<PointPathInt16>());
+        }
+        else if (msg->getDataType() == "nav_utils/PointPathInt32")
+        {
+            convertAndPublish(*msg->instantiate<PointPathInt32>());
+        }
+    }
+
 private:
     ros::NodeHandle nh_;
     ros::NodeHandle pnh_;
