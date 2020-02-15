@@ -68,11 +68,11 @@ add_executable(path_downsample
 add_dependencies(path_downsample nav_utils_generate_messages)
 target_link_libraries(path_downsample ${catkin_LIBRARIES})
 
-add_executable(point_downsample
+add_executable(path_upsample
     src/nav_utils/path_upsample.cpp
 )
-add_dependencies(point_downsample nav_utils_generate_messages)
-target_link_libraries(point_downsample ${catkin_LIBRARIES})
+add_dependencies(path_upsample nav_utils_generate_messages)
+target_link_libraries(path_upsample ${catkin_LIBRARIES})
 
 #add_executable(test_timer_pub
 #    test/test_timer_pub.cpp
