@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
+#include <nav_utils/paths.h>
 #include <nav_utils/PointPathInt16.h>
 #include <nav_utils/PointPathInt32.h>
 #include <topic_tools/shape_shifter.h>
@@ -21,18 +22,7 @@ public:
     void convertAndPublish(const Path& msg)
     {
         nav_msgs::Path out;
-        out.header = msg.header;
-        out.poses.reserve(msg.positions.size());
-        for (const auto& p: msg.positions)
-        {
-            geometry_msgs::PoseStamped pose;
-            pose.header = msg.header;
-            pose.pose.position.x = double(p.x) * msg.unit;
-            pose.pose.position.y = double(p.y) * msg.unit;
-            pose.pose.position.z = double(p.z) * msg.unit;
-            pose.pose.orientation.w = 1.0;
-            out.poses.push_back(pose);
-        }
+        upsample(msg, out);
         pub_.publish(out);
     }
 

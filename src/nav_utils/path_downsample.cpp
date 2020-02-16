@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
+#include <nav_utils/paths.h>
 #include <nav_utils/PointPathInt16.h>
 #include <nav_utils/PointPathInt32.h>
 
@@ -42,31 +43,8 @@ public:
     template<typename Path>
     void downsampleAndPublish(const nav_msgs::Path &msg)
     {
-        typedef typename Path::_positions_type::value_type Point;
-        typedef typename Point::_x_type T;
         Path out;
-        out.header = msg.header;
-        out.unit = unit_;
-        out.positions.reserve(msg.poses.size() / (1 + skip_) + 1);
-        if (!msg.poses.empty())
-        {
-            for (size_t i = 0; i < msg.poses.size() - 1; i += 1 + skip_) {
-                Point p;
-                p.x = T(msg.poses[i].pose.position.x / unit_);
-                p.y = T(msg.poses[i].pose.position.y / unit_);
-                p.z = T(msg.poses[i].pose.position.z / unit_);
-                out.positions.push_back(p);
-            }
-        }
-        // Get the last position we missed above if there is any.
-        if (!msg.poses.empty())
-        {
-            Point p;
-            p.x = T(msg.poses.back().pose.position.x / unit_);
-            p.y = T(msg.poses.back().pose.position.y / unit_);
-            p.z = T(msg.poses.back().pose.position.z / unit_);
-            out.positions.push_back(p);
-        }
+        downsample(msg, out, skip_, unit_);
         pub_.publish(out);
     }
 
@@ -86,7 +64,7 @@ private:
     ros::NodeHandle nh_;
     ros::NodeHandle pnh_;
     int skip_;
-    double unit_;
+    float unit_;
     int type_;
     ros::Publisher pub_;
     ros::Subscriber sub_;
