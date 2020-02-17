@@ -1,0 +1,24 @@
+<launch>
+    <arg name="bag" default="/home/petrito1/workspace/data/subt/dpp/2019-11-28/dfki_robot/ugv_2019-11-28-11-20-42.bag"/>
+
+    <param name="use_sim_time" value="true"/>
+    <node name="play" pkg="rosbag" type="play" args="--clock $(arg bag)" output="log">
+        <remap from="rosout" to="~/rosout"/>
+        <remap from="rosout_agg" to="~/rosout_agg"/>
+    </node>
+
+    <node name="odom_to_pose" pkg="nav_utils" type="odom_to_pose" output="log"
+          respawn="true" respawn_delay="0.5">
+        <param name="normalize" value="true"/>
+        <remap from="odom" to="imu_odom"/>
+        <remap from="pose" to="imu_pose"/>
+    </node>
+
+    <node name="pose_to_odom" pkg="nav_utils" type="pose_to_odom" output="log"
+          respawn="true" respawn_delay="0.5">
+        <param name="normalize" value="true"/>
+        <remap from="pose" to="imu_pose"/>
+        <remap from="odom" to="imu_odom_loop"/>
+    </node>
+
+</launch>
