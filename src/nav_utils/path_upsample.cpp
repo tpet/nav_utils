@@ -15,7 +15,7 @@ public:
             pnh_(pnh)
     {
         pub_ = nh_.advertise<nav_msgs::Path>("path", 5);
-        sub_ = nh_.subscribe("point_path", 5, &PathUpsample::messageReceived, this);
+        sub_ = nh_.subscribe("position_path", 5, &PathUpsample::messageReceived, this);
     }
 
     template<typename Path>

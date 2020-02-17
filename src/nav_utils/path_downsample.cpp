@@ -31,11 +31,11 @@ public:
         pnh_.param("type", type_, type_);
         if (type_ == Int16)
         {
-            pub_ = nh_.advertise<PointPathInt16>("point_path", 5);
+            pub_ = nh_.advertise<PointPathInt16>("position_path", 5);
         }
         else if (type_ == Int32)
         {
-            pub_ = nh_.advertise<PointPathInt32>("point_path", 5);
+            pub_ = nh_.advertise<PointPathInt32>("position_path", 5);
         }
         sub_ = nh_.subscribe("path", 5, &PathDownsample::messageReceived, this);
     }
