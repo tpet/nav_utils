@@ -22,6 +22,7 @@ include_directories(${catkin_INCLUDE_DIRS})
 
 add_message_files(FILES
     PoseInt32.msg
+    PositionInt32.msg
     PositionPathInt16.msg
     PositionPathInt32.msg
     QuaternionInt16.msg
@@ -89,6 +90,18 @@ add_executable(pose_to_odom
         )
 add_dependencies(pose_to_odom nav_utils_generate_messages)
 target_link_libraries(pose_to_odom ${catkin_LIBRARIES})
+
+add_executable(odom_to_position
+        src/nav_utils/odom_to_position.cpp
+        )
+add_dependencies(odom_to_position nav_utils_generate_messages)
+target_link_libraries(odom_to_position ${catkin_LIBRARIES})
+
+add_executable(position_to_odom
+        src/nav_utils/position_to_odom.cpp
+        )
+add_dependencies(position_to_odom nav_utils_generate_messages)
+target_link_libraries(position_to_odom ${catkin_LIBRARIES})
 
 #add_executable(test_timer_pub
 #    test/test_timer_pub.cpp
