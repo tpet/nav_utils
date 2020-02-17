@@ -1,8 +1,8 @@
 #include <ros/ros.h>
 #include <nav_msgs/Path.h>
 #include <nav_utils/paths.h>
-#include <nav_utils/PointPathInt16.h>
-#include <nav_utils/PointPathInt32.h>
+#include <nav_utils/PositionPathInt16.h>
+#include <nav_utils/PositionPathInt32.h>
 
 namespace nav_utils
 {
@@ -31,11 +31,11 @@ public:
         pnh_.param("type", type_, type_);
         if (type_ == Int16)
         {
-            pub_ = nh_.advertise<PointPathInt16>("position_path", 5);
+            pub_ = nh_.advertise<PositionPathInt16>("position_path", 5);
         }
         else if (type_ == Int32)
         {
-            pub_ = nh_.advertise<PointPathInt32>("position_path", 5);
+            pub_ = nh_.advertise<PositionPathInt32>("position_path", 5);
         }
         sub_ = nh_.subscribe("path", 5, &PathDownsample::messageReceived, this);
     }
@@ -52,11 +52,11 @@ public:
     {
         if (type_ == Int16)
         {
-            downsampleAndPublish<PointPathInt16>(msg);
+            downsampleAndPublish<PositionPathInt16>(msg);
         }
         else if (type_ == Int32)
         {
-            downsampleAndPublish<PointPathInt32>(msg);
+            downsampleAndPublish<PositionPathInt32>(msg);
         }
     }
 
