@@ -13,6 +13,7 @@ void convert(const PositionInt32& msg, nav_msgs::Odometry& out)
     out.pose.pose.position.x = double(msg.position.x) / 1000;
     out.pose.pose.position.y = double(msg.position.y) / 1000;
     out.pose.pose.position.z = double(msg.position.z) / 1000;
+    out.pose.pose.orientation.w = 1.0;
 }
 
 class PositionToOdom
