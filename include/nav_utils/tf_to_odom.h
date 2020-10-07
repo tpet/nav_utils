@@ -21,6 +21,7 @@ private:
     std::string child_frame_;
     std::string no_wait_frame_;
     double timeout_;
+    bool timeout_relative_;
     double timer_freq_;
     int trigger_queue_size_;
     int odom_queue_size_;

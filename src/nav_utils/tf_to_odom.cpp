@@ -37,6 +37,7 @@ TransformToOdometry::TransformToOdometry(ros::NodeHandle &nh, ros::NodeHandle &p
     pnh.param("child_frame", child_frame_, child_frame_);
     pnh.param("no_wait_frame", no_wait_frame_, no_wait_frame_);
     pnh.param("timeout", timeout_, timeout_);
+    pnh.param("timeout_relative", timeout_relative_, timeout_relative_);
     pnh.param("timer_freq", timer_freq_, timer_freq_);
     pnh.param("odom_queue_size", odom_queue_size_, odom_queue_size_);
     pnh.param("trigger_queue_size", trigger_queue_size_, trigger_queue_size_);
@@ -71,21 +72,21 @@ std_msgs::Header TransformToOdometry::extract_header(const topic_tools::ShapeShi
 
 geometry_msgs::Pose TransformToOdometry::lookupPose(const ros::Time &stamp, const std::string &child_frame)
 {
+    ros::Duration timeout(timeout_relative_
+            ? std::max(timeout_ - (ros::Time::now() - stamp).toSec(), 0.)
+            : timeout_);
     if (no_wait_frame_.empty())
     {
-        geometry_msgs::TransformStamped tf_pc = tf_->lookupTransform(parent_frame_, child_frame, stamp,
-                ros::Duration(timeout_));
+        geometry_msgs::TransformStamped tf_pc = tf_->lookupTransform(parent_frame_, child_frame, stamp, timeout);
         geometry_msgs::Pose pose = transform_to_pose(tf_pc.transform);
         return pose;
     }
     ros::Time no_wait;
-    geometry_msgs::TransformStamped tf_pn = tf_->lookupTransform(parent_frame_, no_wait_frame_, no_wait,
-            ros::Duration(timeout_));
+    geometry_msgs::TransformStamped tf_pn = tf_->lookupTransform(parent_frame_, no_wait_frame_, no_wait, timeout);
 //    geometry_msgs::TransformStamped tf_pn;
     Eigen::Isometry3d T_pn = tf2::transformToEigen(tf_pn.transform);
     // Waiting lookup slows it to around 13 Hz when using timer.
-    geometry_msgs::TransformStamped tf_nc = tf_->lookupTransform(no_wait_frame_, child_frame, stamp,
-            ros::Duration(timeout_));
+    geometry_msgs::TransformStamped tf_nc = tf_->lookupTransform(no_wait_frame_, child_frame, stamp, timeout);
 //    geometry_msgs::TransformStamped tf_nc = tf_->lookupTransform(no_wait_frame_, child_frame, no_wait,
 //            ros::Duration(timeout_));
 //    geometry_msgs::TransformStamped tf_nc;
