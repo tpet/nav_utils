@@ -28,6 +28,7 @@ TransformToOdometry::TransformToOdometry(ros::NodeHandle &nh, ros::NodeHandle &p
         child_frame_(""),
         no_wait_frame_(""),
         timeout_(1.0),
+        timeout_relative_(false),
         timer_freq_(0.0),
         trigger_queue_size_(5),
         odom_queue_size_(5),
