@@ -127,6 +127,7 @@ install(
         odom_proc
         odom_to_tf
         tf_to_odom
+        tf_copy
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 install(
