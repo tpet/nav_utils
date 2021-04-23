@@ -8,6 +8,8 @@ set(CATKIN_DEPS
     geometry_msgs
     nav_msgs
     nodelet
+    pcl_conversions
+    pcl_ros
     roscpp
     sensor_msgs
     std_msgs
@@ -119,6 +121,7 @@ add_library(${PROJECT_NAME}_plugins
     src/nav_utils/tf_fast_repeater_nodelet.cpp
     src/nav_utils/tf_to_odom.cpp
     src/nav_utils/tf_to_odom_nodelet.cpp
+    src/nav_utils/crop_box_nodelet.cpp
 )
 target_link_libraries(${PROJECT_NAME}_plugins ${catkin_LIBRARIES})
 

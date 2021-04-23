@@ -34,4 +34,11 @@
             Copy a transform elsewhere.
         </description>
     </class>
+    <class name="nav_utils/CropBox"
+           type="nav_utils::CropBoxNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            pcl/CropBox
+        </description>
+    </class>
 </library>
