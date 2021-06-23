@@ -1,0 +1,66 @@
+#!/usr/bin/env python
+from __future__ import absolute_import, division, print_function
+import rospy
+from tf2_msgs.msg import TFMessage
+from threading import Lock
+
+
+class TransformFilter(object):
+
+    def __init__(self):
+        self.include_parents = set(rospy.get_param('~include_parents', []))
+        self.exclude_parents = set(rospy.get_param('~exclude_parents', []))
+        self.include_children = set(rospy.get_param('~include_children', []))
+        self.exclude_children = set(rospy.get_param('~exclude_children', []))
+        self.repeat_freq = rospy.get_param('~repeat_freq', 0.)
+        self.max_freq = rospy.get_param('~max_freq', float('inf'))
+        self.latch = rospy.get_param('~latch', False)
+
+        self.last_sent = {}
+        self.transforms_lock = Lock()
+        self.last_transform_sent = {}
+
+        self.pub = rospy.Publisher('tf_filtered', TFMessage, queue_size=10, latch=self.latch)
+        self.sub = rospy.Subscriber('tf', TFMessage, self.tf_cb, queue_size=10)
+        if self.repeat_freq > 0.:
+            self.timer = rospy.Timer(rospy.Duration.from_sec(1. / self.repeat_freq), self.timer_cb)
+
+    def keep(self, tf):
+        if self.include_parents and tf.header.frame_id not in self.include_parents:
+            return False
+        if tf.header.frame_id in self.exclude_parents:
+            return False
+        if self.include_children and tf.child_frame_id not in self.include_children:
+            return False
+        if tf.child_frame_id in self.exclude_children:
+            return False
+
+        if self.repeat_freq > 0.:
+            with self.transforms_lock:
+                self.last_transform_sent[tf.child_frame_id] = tf
+
+        if self.max_freq < float('inf'):
+            now = rospy.Time.now().to_sec()
+            if tf.child_frame_id in self.last_sent:
+                sent_ago = now - self.last_sent[tf.child_frame_id]
+                if sent_ago < 1. / self.max_freq:
+                    return False
+            self.last_sent[tf.child_frame_id] = now
+
+        return True
+
+    def tf_cb(self, msg):
+        msg.transforms = [tf for tf in msg.transforms if self.keep(tf)]
+        if msg.transforms:
+            self.pub.publish(msg)
+
+    def timer_cb(self, evt):
+        with self.transforms_lock:
+            msg = TFMessage(self.last_transform_sent.values())
+        self.pub.publish(msg)
+
+
+if __name__ == '__main__':
+    rospy.init_node('tf_filter')
+    node = TransformFilter()
+    rospy.spin()

@@ -1,0 +1,103 @@
+#!/usr/bin/env python
+
+import numpy as np
+import rospy
+import tf2_ros
+
+
+"""
+Computes TF metrics such as L2 distances between pairs of frames,
+e.g., to assess SLAM accuracy w.r.t. ground truth. 
+"""
+
+
+class Average(object):
+    def __init__(self):
+        self.sum = 0.0
+        self.weight = 0
+
+    def update(self, other, weight=1):
+        self.sum += weight * other
+        self.weight += weight  # Can change type! 8)
+        return self
+
+    def reset(self):
+        self.sum = 0.0
+        self.weight = 0
+
+    def __iadd__(self, other):
+        return self.update(other)
+
+    def __call__(self):
+        return self.sum / self.weight
+
+    def __float__(self):
+        return self()
+
+    def __str__(self):
+        return '%f' % self()
+
+
+def slots(msg):
+    return [getattr(msg, var) for var in msg.__slots__]
+
+
+def array(msg):
+    return np.array(slots(msg))
+
+
+class TfMetrics(object):
+    def __init__(self):
+        self.dist_pairs = rospy.get_param('~frame_dist', {'X1': ['X1/base_link', 'X1/ground_truth']})
+        if not self.dist_pairs:
+            rospy.logwarn('No TF frame pairs specified.')
+            return
+        assert isinstance(self.dist_pairs, dict)
+        self.freq = rospy.get_param('~freq', 1.)
+        if self.freq <= 0.:
+            # rospy.logerror('Invalid frequency specified: %g Hz.' % self.freq)
+            raise ValueError('Invalid frequency specified: %g Hz.' % self.freq)
+        self.timeout = rospy.Duration(rospy.get_param('~timeout', 10.))
+        # self.fixed = rospy.get_param('~fixed_frame', 'subt')
+
+        self.dists = {}
+        for label, (target, source) in self.dist_pairs.items():
+            self.dists[label] = Average()
+            rospy.loginfo('Monitor L2 dist. %s from %s to %s with freq. %g Hz.'
+                          % (label, source, target, self.freq))
+        self.avg = Average()
+
+        self.tf = tf2_ros.Buffer()
+        self.tf_sub = tf2_ros.TransformListener(self.tf)
+        self.timer = rospy.Timer(rospy.Duration.from_sec(1.0 / self.freq), self.timer_cb)
+
+    def metrics(self, stamp):
+        for label, (target, source) in self.dist_pairs.items():
+            try:
+                tf = self.tf.lookup_transform(target, source, stamp, self.timeout)
+            except tf2_ros.TransformException as ex:
+                rospy.logwarn('Could not get transform %s from %s to %s: %s.',
+                              label, source, target, ex)
+                continue
+            # q = array(tf.transform.rotation)
+            a = 2 * np.arccos(tf.transform.rotation.w)
+            x = array(tf.transform.translation)
+            d = np.linalg.norm(x)
+            self.dists[label] += d
+            self.avg += d
+            rospy.loginfo('%s: rot.: %.1f deg., transl.: %.3f, %.3f, %.3f: cur. L2: %.3f m, avg. L2: %.3f m.',
+                          label, a, x[0], x[1], x[2], d, self.dists[label]())
+        if self.avg.weight > 0:
+            rospy.loginfo('avg. L2: %.3f m.', self.avg())
+
+    def timer_cb(self, event):
+        self.metrics(event.current_real)
+
+
+if __name__ == '__main__':
+    rospy.init_node("tf_metrics")
+    node = TfMetrics()
+    try:
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
