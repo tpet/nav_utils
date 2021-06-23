@@ -15,6 +15,7 @@ class TransformFilter(object):
         self.repeat_freq = rospy.get_param('~repeat_freq', 0.)
         self.max_freq = rospy.get_param('~max_freq', float('inf'))
         self.latch = rospy.get_param('~latch', False)
+        self.tf_prefix = rospy.get_param('~tf_prefix', '')
 
         self.last_sent = {}
         self.transforms_lock = Lock()
@@ -51,13 +52,19 @@ class TransformFilter(object):
 
     def tf_cb(self, msg):
         msg.transforms = [tf for tf in msg.transforms if self.keep(tf)]
+        if self.tf_prefix:
+            for tf in msg.transforms:
+                tf.header.frame_id = self.tf_prefix + tf.header.frame_id
+                tf.child_frame_id = self.tf_prefix + tf.child_frame_id
+            msg.transforms = [tf for tf in msg.transforms if self.keep(tf)]
         if msg.transforms:
             self.pub.publish(msg)
 
     def timer_cb(self, evt):
         with self.transforms_lock:
             msg = TFMessage(self.last_transform_sent.values())
-        self.pub.publish(msg)
+        if msg.transforms:
+            self.pub.publish(msg)
 
 
 if __name__ == '__main__':
