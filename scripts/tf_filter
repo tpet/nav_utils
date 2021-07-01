@@ -56,7 +56,6 @@ class TransformFilter(object):
             for tf in msg.transforms:
                 tf.header.frame_id = self.tf_prefix + tf.header.frame_id
                 tf.child_frame_id = self.tf_prefix + tf.child_frame_id
-            msg.transforms = [tf for tf in msg.transforms if self.keep(tf)]
         if msg.transforms:
             self.pub.publish(msg)
 
