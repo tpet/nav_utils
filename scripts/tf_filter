@@ -5,7 +5,7 @@ from tf2_msgs.msg import TFMessage
 from threading import Lock
 
 
-def strip(frame):
+def strip_leading_slash(frame):
     if len(frame) > 0 and frame[0] == "/":
         frame = frame[1:]
     return frame
@@ -14,6 +14,7 @@ def strip(frame):
 class TransformFilter(object):
 
     def __init__(self):
+        self.strip_leading_slash = rospy.get_param('~strip_leading_slash', True)
         self.include_parents = set(rospy.get_param('~include_parents', []))
         self.exclude_parents = set(rospy.get_param('~exclude_parents', []))
         self.include_children = set(rospy.get_param('~include_children', []))
@@ -33,13 +34,13 @@ class TransformFilter(object):
             self.timer = rospy.Timer(rospy.Duration.from_sec(1. / self.repeat_freq), self.timer_cb)
 
     def keep(self, tf):
-        if self.include_parents and strip(tf.header.frame_id) not in self.include_parents:
+        if self.include_parents and tf.header.frame_id not in self.include_parents:
             return False
-        if strip(tf.header.frame_id) in self.exclude_parents:
+        if tf.header.frame_id in self.exclude_parents:
             return False
-        if self.include_children and strip(tf.child_frame_id) not in self.include_children:
+        if self.include_children and tf.child_frame_id not in self.include_children:
             return False
-        if strip(tf.child_frame_id) in self.exclude_children:
+        if tf.child_frame_id in self.exclude_children:
             return False
 
         if self.repeat_freq > 0.:
@@ -57,11 +58,14 @@ class TransformFilter(object):
         return True
 
     def tf_cb(self, msg):
+        if self.strip_leading_slash:
+            for tf in msg.transforms:
+                tf.header.frame_id = strip_leading_slash(tf.header.frame_id)
         msg.transforms = [tf for tf in msg.transforms if self.keep(tf)]
         if self.tf_prefix:
             for tf in msg.transforms:
-                tf.header.frame_id = self.tf_prefix + strip(tf.header.frame_id)
-                tf.child_frame_id = self.tf_prefix + strip(tf.child_frame_id)
+                tf.header.frame_id = self.tf_prefix + tf.header.frame_id
+                tf.child_frame_id = self.tf_prefix + tf.child_frame_id
         if msg.transforms:
             self.pub.publish(msg)
 
@@ -72,7 +76,11 @@ class TransformFilter(object):
             self.pub.publish(msg)
 
 
-if __name__ == '__main__':
+def main():
     rospy.init_node('tf_filter')
     node = TransformFilter()
     rospy.spin()
+
+
+if __name__ == '__main__':
+    main()
