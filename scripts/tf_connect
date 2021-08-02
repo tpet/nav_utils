@@ -1,0 +1,304 @@
+#!/usr/bin/env python
+"""
+The tf_connect allows to join disconnected TF trees by defining
+coincident TF frames.
+"""
+from __future__ import absolute_import, division, print_function
+from geometry_msgs.msg import Transform, TransformStamped
+import numpy as np
+from ros_numpy import msgify, numpify
+import rospy
+from tf2_msgs.msg import TFMessage
+import tf2_ros
+import yaml
+from timeit import default_timer as timer
+
+
+def parse_tf_graph(frames_as_yaml):
+    # frames_yaml = yaml.load(frames_as_yaml)
+    frames_yaml = yaml.safe_load(frames_as_yaml)
+    frames = []
+    child_to_parent = {}
+    parent_to_children = {}
+    # for item in frames_yaml:
+        # print(item)
+    for child, info in frames_yaml.items():
+        parent = info['parent']
+        frames.append(child)
+        frames.append(parent)
+        child_to_parent[child] = parent
+        parent_to_children.get(parent, []).append(child)
+    return set(frames), child_to_parent, parent_to_children
+
+
+class TfTreeConnection(object):
+    def __init__(self, frame_0, frame_1, child, parent):
+        # Coincident frames used to establish connection.
+        # Frame from the child tf tree.
+        self.frame_0 = frame_0
+        # Frame from the parent tf tree.
+        self.frame_1 = frame_1
+        # Frame actually connected by a transform.
+        self.child = child
+        self.parent = parent
+
+
+class TfConnect(object):
+
+    def __init__(self):
+        connect_modes = ('first', 'all')
+        self.connect_mode = rospy.get_param('~connect', 'first')
+        # assert self.connect in connect_modes
+        rospy.loginfo('Connect mode: %s.', self.connect_mode)
+        if self.connect_mode not in connect_modes:
+            # rospy.logerror('Invalid connect mode: %s, must be one of %s.',
+            #                self.connect, ', '.join(connect_modes))
+            raise ValueError('Invalid connect mode: %s, must be one of %s.'
+                             % (self.connect_mode, ', '.join(connect_modes)))
+
+        # Keep ordering
+        self.coincident_frames = rospy.get_param('~coincident_frames', [])
+        rospy.loginfo('Coincident frames: %s.', ', '.join(self.coincident_frames))
+        if len(self.coincident_frames) < 2:
+            # rospy.logerror('At least two coincident frames must be defined.')
+            raise ValueError('At least two coincident frames must be defined.')
+
+        # Which frame is to be used as a parent to join the trees?
+        self.parent_frame = rospy.get_param('~parent_frame', None)
+        if self.parent_frame:
+            rospy.loginfo('Connection parent frame: %s.', self.parent_frame)
+        else:
+            rospy.logwarn('Parent frame not defined (tree root will be used).')
+
+        self.child_frame = rospy.get_param('~child_frame', None)
+        if self.child_frame:
+            rospy.loginfo('Connection child frame: %s.', self.parent_frame)
+        if not self.child_frame:
+            rospy.logwarn('Connection child frame not defined (tree root will be used).')
+
+        self.tf_timeout = rospy.Duration.from_sec(rospy.get_param('~tf_timeout', 0.0))
+        rospy.loginfo('TF timeout: %.3f s', self.tf_timeout.to_sec())
+        self.unsubscribe_once_connected = rospy.get_param('~unsubscribe_once_connected', True)
+        rospy.loginfo('Unsubscribe once TF trees are connected: %s.', self.unsubscribe_once_connected)
+        # Connected frames.
+        self.published_frames = {}
+
+        self.timer_freq = rospy.get_param('~timer_freq', 1.)
+        rospy.loginfo('Timer frequency: %.3f Hz', self.timer_freq)
+
+        self.static = rospy.get_param('~static', False)
+        rospy.loginfo('Static transforms: %s.', 'yes' if self.static else 'no')
+        self.latch = rospy.get_param('~latch', self.static)
+        rospy.loginfo('Latching transforms: %s.', 'yes' if self.latch else 'no')
+
+        # Transform graph data (updated regularly).
+        self.frames = set()
+        self.child_to_parent = {}
+        self.parent_to_children = {}
+
+        # Allow separate remapping of input and output transform topics.
+        # Input is /tf, output ~/tf.
+        self.pub = rospy.Publisher('~tf', TFMessage, queue_size=10, latch=self.latch)
+
+        self.tf = tf2_ros.Buffer()
+        self.tf_sub = tf2_ros.TransformListener(self.tf)
+
+        if self.timer_freq > 0.:
+            self.timer = rospy.Timer(rospy.Duration.from_sec(1. / self.timer_freq), self.timer_cb)
+            rospy.loginfo('Will try to connect TF trees each %.1f s.', 1. / self.timer_freq)
+        else:
+            rospy.logwarn('Will try to connect TF trees only once.')
+            self.timer_cb(None)
+
+    def tf_frames_info(self):
+        t = rospy.Time.now()
+        s = 'Latest transforms (age):\n'
+        for child in self.frames:
+            # parent = self.parent_frame(child)
+            parent = self.child_to_parent.get(child, None)
+            if not parent:
+                continue
+            tf = self.tf.lookup_transform(parent, child, rospy.Time())
+            s += ('%s -> %s: %.3f s old, from %.1f s\n'
+                  % (parent, child, (t - tf.header.stamp).to_sec(), tf.header.stamp.to_sec()))
+        return s
+
+    def lookup_transform(self, target, source, time=rospy.Time()):
+        try:
+            return self.tf.lookup_transform(target, source, time)
+        except tf2_ros.TransformException as ex:
+            # return None
+            pass
+        return None
+
+    def root(self, frame):
+        while frame in self.child_to_parent:
+            frame = self.child_to_parent[frame]
+        return frame
+
+    def path_to_root(self, frame):
+        path = [frame]
+        while frame in self.child_to_parent:
+            frame = self.child_to_parent[frame]
+            path.append(frame)
+        return path
+
+    def frames_connected(self, frame_0, frame_1, time=rospy.Time()):
+        # try:
+        #     self.tf.lookup_transform(frame_0, frame_1, time)
+        # except tf2_ros.ConnectivityException as ex:
+        #     return False
+        # return True
+        # Use transform graph.
+        path_0 = set(self.path_to_root(frame_0))
+        path_1 = set(self.path_to_root(frame_1))
+        return not path_0.isdisjoint(path_1)
+
+    def path_between_frames(self, frame_0, frame_1):
+        path_0 = self.path_to_root(frame_0)
+        path_1 = self.path_to_root(frame_1)
+        set_0 = set(path_0)
+        set_1 = set(path_1)
+        part_0 = []
+        for f in path_0:
+            if f in set_1:
+                break
+            part_0.append(f)
+        part_1 = []
+        for f in path_1:
+            part_1.append(f)
+            if f in set_0:
+                break
+        else:
+            # No intersection found.
+            return None
+        path = part_0 + part_1[::-1]
+        return path
+
+    def frame_exists(self, frame):
+        return frame in self.frames
+
+    def existing_frames(self, frames):
+        return [f for f in frames if f in self.frames]
+
+    def try_connect_frames(self, frame_0, frame_1):
+        """Try connecting frames.
+        @frame_0 Frame in the child tree, connected with its root.
+        @frame_1 Frame in the parent tree, by default connected by its its root.
+        """
+        rospy.logdebug_throttle(5., self.tf_frames_info())
+
+        # TODO: Redo with frame 0 connected to parent tree and frame 1 to child tree?
+        rospy.logdebug('Trying to connect child tf tree containing frame %s '
+                       'with parent tf tree containing frame %s.',
+                       frame_0, frame_1)
+        if frame_0 in self.published_frames:
+            # Trees are connected, update the transform.
+            conn = self.published_frames[frame_0]
+            assert isinstance(conn, TfTreeConnection)
+            assert conn.frame_0 == frame_0
+            if conn.frame_1 != frame_1:
+                path = self.path_between_frames(frame_0, conn.frame_1)
+                rospy.loginfo('Frame %s already connected to %s, path %s.',
+                              frame_0, conn.frame_1,
+                              ' -> '.join(path) if path else 'not yet available')
+                # We can't change the parent but we can connect the whole new
+                # tree under a different parent.
+                return
+            child, parent = conn.child, conn.parent
+
+        elif self.frames_connected(frame_0, frame_1):
+            # Issue a warning if trees are initially connected.
+            path = self.path_between_frames(frame_0, frame_1)
+            rospy.logwarn('%s and %s had already been connected: %s.',
+                          frame_0, frame_1, ' -> '.join(path))
+            return
+
+        else:
+            # NB: The root of the child tree changes once connected to parent.
+            root_0 = self.root(frame_0)
+            child = self.child_frame or root_0
+            assert child == self.child_frame
+            parent = self.parent_frame or self.root(frame_1)
+
+        try:
+            # tf_f1_to_p = self.lookup_transform(parent, frame_1)
+            # tf_c_to_f0 = self.lookup_transform(frame_0, child, tf_f1_to_p.header.stamp)
+            tf_f1_to_p = self.tf.lookup_transform(parent, frame_1, rospy.Time(), timeout=self.tf_timeout)
+            stamp = tf_f1_to_p.header.stamp or rospy.Time.now()
+            # rospy.loginfo('Using time %.1f s.', stamp.to_sec())
+            tf_c_to_f0 = self.tf.lookup_transform(frame_0, child, stamp, timeout=self.tf_timeout)
+        except tf2_ros.TransformException as ex:
+            if self.static:
+                rospy.loginfo_throttle(5.0, 'Frames %s and %s could not be connected: %s.',
+                                       frame_0, frame_1, ex)
+            else:
+                rospy.logwarn('Frames %s and %s could not be connected: %s.',
+                              frame_0, frame_1, ex)
+            return
+
+        f1_to_p = numpify(tf_f1_to_p.transform)
+        c_to_f0 = numpify(tf_c_to_f0.transform)
+        c_to_p = np.matmul(f1_to_p, c_to_f0)
+        tf_c_to_p = TransformStamped()
+        tf_c_to_p.header.stamp = stamp
+        tf_c_to_p.header.frame_id = parent
+        tf_c_to_p.child_frame_id = child
+        tf_c_to_p.transform = msgify(Transform, c_to_p)
+        self.pub.publish(TFMessage([tf_c_to_p]))
+        conn = TfTreeConnection(frame_0, frame_1, child, parent)
+        self.published_frames[frame_0] = conn
+        # rospy.loginfo('Frames %s and %s connected with %s -> %s at time %.1f s.',
+        #               frame_0, frame_1, parent, child, stamp.to_sec())
+        path = self.path_between_frames(frame_0, conn.frame_1)
+        rospy.loginfo('Frames %s and %s connected at time %.1f s: path %s.',
+                      frame_0, frame_1, stamp.to_sec(),
+                      ', '.join(path) if path else 'not yet available')
+
+    def update_tf_graph(self):
+        t = timer()
+        self.frames, self.child_to_parent, self.parent_to_children = parse_tf_graph(self.tf.all_frames_as_yaml())
+        rospy.logdebug('TF graph updated: %.3f s.', timer() - t)
+
+    def timer_cb(self, evt):
+        t = timer()
+        self.update_tf_graph()
+
+        if not self.frame_exists(self.parent_frame):
+            rospy.logwarn('Parent frame %s does not exist. Existing frames: %s.',
+                          self.parent_frame, ', '.join(self.frames))
+            return
+
+        coincident_frames = self.existing_frames(self.coincident_frames)
+        if len(coincident_frames) < 2:
+            rospy.loginfo('At least two coincident frames must exist. Existing frames: %s (%i coincide).',
+                          ', '.join(self.frames), len(coincident_frames))
+            return
+
+        if self.connect_mode == 'first':
+            frame_0 = coincident_frames[0]
+            for frame_1 in coincident_frames[1:]:
+                self.try_connect_frames(frame_0, frame_1)
+        elif self.connect_mode == 'all':
+            for frame_0 in coincident_frames:
+                for frame_1 in coincident_frames:
+                    if frame_0 == frame_1:
+                        continue
+                    self.try_connect_frames(frame_0, frame_1)
+            # for i in range(len(coincident_frames)):
+            #     for j in range(i + 1, len(coincident_frames)):
+            #         frame_0 = coincident_frames[i]
+            #         frame_1 = coincident_frames[j]
+            #         try_connect_frames(frame_0, frame_1)
+
+        rospy.logdebug('Connecting TF trees: %.3f s.', timer() - t)
+
+
+def main():
+    rospy.init_node('tf_connect')
+    node = TfConnect()
+    rospy.spin()
+
+
+if __name__ == '__main__':
+    main()

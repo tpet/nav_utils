@@ -29,6 +29,21 @@ frequency on which the TF is updated, and if it is nonstatic, the also published
 `error_if_tf_missing` specifies, whether ROS should issue an error in console if the source
 TF is missing.
 
+## `tf_filter` (Python)
+
+The node filters TF messages by
+ - including / excluding parent frames,
+ - including / excluding child frames,
+ - limiting publishing frequency.
+
+It subscribes topic `tf` and publishes to `tf_filtered`.
+
+It allows collecting and republishing transforms in regular intervals.
+
+## `tf_connect` (Python)
+
+The `tf_connect` node allows to connect multiple disconnected TF trees by defining coincident frames.
+
 # Nodelets
 
 As above, in nodelets.

@@ -126,6 +126,7 @@ add_library(${PROJECT_NAME}_plugins
 target_link_libraries(${PROJECT_NAME}_plugins ${catkin_LIBRARIES})
 
 catkin_install_python(PROGRAMS
+    scripts/tf_connect
     scripts/tf_filter
     scripts/tf_metrics
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
