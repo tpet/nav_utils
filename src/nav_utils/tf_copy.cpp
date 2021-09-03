@@ -59,6 +59,9 @@ void TfCopy::run()
       if (this->staticTf && equal(transformMsg.transform, this->lastTransform))
         continue;
 
+      if ((transformMsg.header.stamp - this->lastTransformStamp).toSec() < 1e-3)
+        continue;
+
       geometry_msgs::TransformStamped outMsg = transformMsg;
       outMsg.header.frame_id = this->newParentFrame;
       outMsg.child_frame_id = this->newChildFrame;
@@ -71,6 +74,7 @@ void TfCopy::run()
       if (this->staticTf) {
         this->tfStaticPublisher.sendTransform(outMsg);
         this->lastTransform = transformMsg.transform;
+        this->lastTransformStamp = transformMsg.header.stamp;
       } else {
         this->tfPublisher.sendTransform(outMsg);
       }

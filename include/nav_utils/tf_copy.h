@@ -32,6 +32,7 @@ protected:
   tf2_ros::StaticTransformBroadcaster tfStaticPublisher;
 
   geometry_msgs::Transform lastTransform;
+  ros::Time lastTransformStamp;
 
   std::string parentFrame;
   std::string childFrame;
