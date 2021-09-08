@@ -59,7 +59,9 @@ void TfCopy::run()
       if (this->staticTf && equal(transformMsg.transform, this->lastTransform))
         continue;
 
+      ROS_INFO("[%s]: transform msg stamp = %.4f, last message stamp = %.4f ", ros::this_node::getName().c_str(), transformMsg.header.stamp.toSec(), lastTransformStamp.toSec());
       if ((transformMsg.header.stamp - this->lastTransformStamp).toSec() < 1e-3)
+        ROS_INFO("[%s]: skipping", ros::this_node::getName().c_str());
         continue;
 
       geometry_msgs::TransformStamped outMsg = transformMsg;
