@@ -21,6 +21,7 @@ class TransformFilter(object):
         self.exclude_children = set(rospy.get_param('~exclude_children', []))
         self.repeat_freq = rospy.get_param('~repeat_freq', 0.)
         self.max_freq = rospy.get_param('~max_freq', float('inf'))
+        self.max_age = rospy.get_param('~max_age', float('inf'))
         self.latch = rospy.get_param('~latch', False)
         self.tf_prefix = rospy.get_param('~tf_prefix', '')
 
@@ -54,6 +55,11 @@ class TransformFilter(object):
                 if sent_ago < 1. / self.max_freq:
                     return False
             self.last_sent[tf.child_frame_id] = now
+
+        if self.max_age < float('inf'):
+            age = (rospy.Time.now() - tf.header.stamp).to_sec()
+            if age > self.max_age:
+                return False
 
         return True
 
