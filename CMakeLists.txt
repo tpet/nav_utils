@@ -14,6 +14,7 @@ set(CATKIN_DEPS
     sensor_msgs
     std_msgs
     tf2
+    tf2_msgs
     tf2_client
     tf2_eigen
     tf2_ros
@@ -56,6 +57,12 @@ add_executable(tf_to_odom
     src/nav_utils/tf_to_odom_node.cpp
 )
 target_link_libraries(tf_to_odom ${catkin_LIBRARIES})
+
+add_executable(tf_to_path
+    src/nav_utils/tf_to_path.cpp
+    src/nav_utils/tf_to_path_node.cpp
+)
+target_link_libraries(tf_to_path ${catkin_LIBRARIES})
 
 add_executable(tf_fast_repeater
     src/nav_utils/tf_fast_repeater.cpp
@@ -121,6 +128,8 @@ add_library(${PROJECT_NAME}_plugins
     src/nav_utils/tf_fast_repeater_nodelet.cpp
     src/nav_utils/tf_to_odom.cpp
     src/nav_utils/tf_to_odom_nodelet.cpp
+    src/nav_utils/tf_to_path.cpp
+    src/nav_utils/tf_to_path_nodelet.cpp
     src/nav_utils/crop_box_nodelet.cpp
 )
 target_link_libraries(${PROJECT_NAME}_plugins ${catkin_LIBRARIES})
@@ -137,6 +146,7 @@ install(
         odom_proc
         odom_to_tf
         tf_to_odom
+        tf_to_path
         tf_copy
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

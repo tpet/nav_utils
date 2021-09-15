@@ -20,6 +20,13 @@
             Tf Transform to odometry conversion.
         </description>
     </class>
+    <class name="nav_utils/tf_to_path"
+           type="nav_utils::TransformToPathNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Tf Transform to path conversion.
+        </description>
+    </class>
     <class name="nav_utils/tf_fast_repeater"
            type="nav_utils::TfFastRepeaterNodelet"
            base_class_type="nodelet::Nodelet">
