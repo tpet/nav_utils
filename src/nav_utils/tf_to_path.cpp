@@ -162,6 +162,8 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
         it_from       = it_to;
       }
 
+      // TODO: we could erase samples actually
+
       it_to++;
     }
 
