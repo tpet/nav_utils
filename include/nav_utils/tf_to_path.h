@@ -41,8 +41,8 @@ private:
   void                                    publishTimerCallback(const ros::TimerEvent &event);
   std::vector<geometry_msgs::PoseStamped> trajectoryToPath();
 
-  std::string frame_parent_;
-  std::string frame_child_;
+  std::string              parent_frame_;
+  std::vector<std::string> children_frames_;
 
   std::mutex                           mutex_trajectory_;
   std::set<time_point, time_point_cmp> trajectory_;  // Ordered set by time

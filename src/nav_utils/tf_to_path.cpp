@@ -35,13 +35,24 @@ geometry_msgs::Point transform_to_point(const geometry_msgs::Transform &tf) {
 
 TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : sub_queue_size_(5) {
 
-  pnh.getParam("parent_frame", frame_parent_);
-  pnh.getParam("child_frame", frame_child_);
-  pnh.param("pub_freq", publish_frequency_, 2.0f);
+  pnh.getParam("parent_frame", parent_frame_);
+  pnh.getParam("children_frames", children_frames_);
+
+  if (parent_frame_.empty() || children_frames_.empty()) {
+    ROS_ERROR("[TfToPath] Parent and/or children frames are empty, nothing to do.");
+    ros::shutdown();
+  }
+
+  ROS_ERROR("[TfToPath] Allowed parent frame: %s.", parent_frame_.c_str());
+  ROS_ERROR("[TfToPath] Allowed children frames:");
+  for (const auto &child : children_frames_) {
+    ROS_ERROR("[TfToPath]  - %s", child.c_str());
+  }
 
   float sample_distance;
   pnh.param("sample_distance", sample_distance, 0.2f);
   sample_distance_squared_ = sample_distance * sample_distance;
+  pnh.param("pub_freq", publish_frequency_, 1.0f);
 
   pub_path_       = nh.advertise<nav_msgs::Path>("path", 1);
   sub_tf_msg_     = nh.subscribe("tf_msg", static_cast<uint32_t>(sub_queue_size_), &TransformToPath::callbackTfMsg, this, ros::TransportHints().tcpNoDelay());
@@ -61,8 +72,10 @@ void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
   const auto &tf_stamped = msg->transforms.at(0);
 
   // Accept transform with given frames only
-  if (tf_stamped.header.frame_id != frame_parent_ || tf_stamped.child_frame_id != frame_child_) {
-    /* ROS_INFO("[TfToPath] ending: frame mismatch expected (parent: %s, child: %s), got (parent: %s, child: %s).", frame_parent_.c_str(), frame_child_.c_str(),
+  const bool parent_frame_valid = tf_stamped.header.frame_id == parent_frame_;
+  const bool child_frame_valid  = std::find(children_frames_.begin(), children_frames_.end(), tf_stamped.child_frame_id) != children_frames_.end();
+  if (!parent_frame_valid || !child_frame_valid) {
+    /* ROS_INFO("[TfToPath] ending: frame mismatch expected (parent: %s, child: %s), got (parent: %s, child: %s).", parent_frame_.c_str(), frame_child_.c_str(),
      */
     /*          tf_stamped.header.frame_id.c_str(), tf_stamped.child_frame_id.c_str()); */
     return;
@@ -94,7 +107,7 @@ void TransformToPath::publishTimerCallback(const ros::TimerEvent &event) {
 
   nav_msgs::Path::Ptr path_msg = boost::make_shared<nav_msgs::Path>();
 
-  path_msg->header.frame_id = frame_parent_;
+  path_msg->header.frame_id = parent_frame_;
   path_msg->header.stamp    = ros::Time::now();
 
   // TODO: optimize conversion (no need to regenerate entire path, only from last change from the history)
