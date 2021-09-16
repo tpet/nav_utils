@@ -101,7 +101,7 @@ void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
   }
 
   {
-    std::scoped_lock lock(mutex_trajectory_);
+    const std::lock_guard<std::mutex> lock(mutex_trajectory_);
     trajectory_.insert(pair_time_point);
   }
   /* ROS_INFO("[TfToPath] inserted msg"); */
@@ -115,7 +115,7 @@ void TransformToPath::publishTimerCallback(const ros::TimerEvent &event) {
     return;
 
   {
-    std::scoped_lock lock(mutex_trajectory_);
+    const std::lock_guard<std::mutex> lock(mutex_trajectory_);
     if (trajectory_.empty())
       return;
   }
@@ -150,7 +150,7 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
 
   size_t k = 0;
   {
-    std::scoped_lock lock(mutex_trajectory_);
+    const std::lock_guard<std::mutex> lock(mutex_trajectory_);
 
     /* ROS_INFO("[%s]: Trajectory:", ros::this_node::getName().c_str()); */
     /* for (const auto &t_p : trajectory_) { */
