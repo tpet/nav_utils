@@ -9,8 +9,10 @@
 #include <ros/ros.h>
 #include <std_msgs/Header.h>
 #include <topic_tools/shape_shifter.h>
-#include <tf2_client/tf2_client.h>
 #include <nav_msgs/Path.h>
+
+#include <tf2_client/tf2_client.h>
+#include <tf2_ros/buffer.h>
 
 #include <mutex>
 #include <set>
@@ -40,6 +42,9 @@ private:
   void                                    callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg);
   void                                    publishTimerCallback(const ros::TimerEvent &event);
   std::vector<geometry_msgs::PoseStamped> trajectoryToPath();
+
+  tf2_client::BufferPtr buffer_;
+  ros::Duration         lookup_timeout_;
 
   std::string              parent_frame_;
   std::vector<std::string> children_frames_;

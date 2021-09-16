@@ -53,6 +53,9 @@ TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : su
   pnh.param("sample_distance", sample_distance, 0.2f);
   sample_distance_squared_ = sample_distance * sample_distance;
   pnh.param("pub_freq", publish_frequency_, 1.0f);
+  lookup_timeout_ = ros::Duration(1.0 / publish_frequency_);
+
+  buffer_ = tf2_client::get_buffer(nh, pnh);
 
   pub_path_       = nh.advertise<nav_msgs::Path>("path", 1);
   sub_tf_msg_     = nh.subscribe("tf_msg", static_cast<uint32_t>(sub_queue_size_), &TransformToPath::callbackTfMsg, this, ros::TransportHints().tcpNoDelay());
@@ -61,32 +64,44 @@ TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : su
 
 /*//{ callbackTfMsg() */
 void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
-  /* ROS_INFO("[TfToPath] callback tf msg"); */
 
-  // Accept single-transform msgs only
-  if (msg->transforms.size() != 1) {
-    /* ROS_INFO("[TfToPath] ending: msg size != 1"); */
-    return;
+  // Process the message further only if the child frame is among the specified frames
+  bool                            process = false;
+  geometry_msgs::TransformStamped tf_valid;
+  for (const auto &tf : msg->transforms) {
+
+    const bool child_frame_lookup = std::find(children_frames_.begin(), children_frames_.end(), tf.child_frame_id) != children_frames_.end();
+    if (child_frame_lookup) {
+      tf_valid = tf;
+      process  = true;
+      break;
+    }
   }
 
-  const auto &tf_stamped = msg->transforms.at(0);
-
-  // Accept transform with given frames only
-  const bool parent_frame_valid = tf_stamped.header.frame_id == parent_frame_;
-  const bool child_frame_valid  = std::find(children_frames_.begin(), children_frames_.end(), tf_stamped.child_frame_id) != children_frames_.end();
-  if (!parent_frame_valid || !child_frame_valid) {
-    /* ROS_INFO("[TfToPath] ending: frame mismatch expected (parent: %s, child: %s), got (parent: %s, child: %s).", parent_frame_.c_str(), frame_child_.c_str(),
-     */
-    /*          tf_stamped.header.frame_id.c_str(), tf_stamped.child_frame_id.c_str()); */
+  if (!process)
     return;
-  }
 
-  const double &secs            = tf_stamped.header.stamp.toSec();
-  const auto &  pair_time_point = std::make_pair(secs, transform_to_point(tf_stamped.transform));
+  time_point pair_time_point;
+
+  // Parent frame equal, we already have the transform
+  if (tf_valid.header.frame_id == parent_frame_) {
+
+    pair_time_point = std::make_pair(tf_valid.header.stamp.toSec(), transform_to_point(tf_valid.transform));
+  }
+  // Lookup for tf if we don't know the transform parent->child
+  else {
+
+    try {
+      const auto tf_msg = buffer_->lookupTransform(parent_frame_, tf_valid.child_frame_id, tf_valid.header.stamp, lookup_timeout_);
+      pair_time_point   = std::make_pair(tf_valid.header.stamp.toSec(), transform_to_point(tf_msg.transform));
+    }
+    catch (...) {
+      return;
+    }
+  }
 
   {
     std::scoped_lock lock(mutex_trajectory_);
-
     trajectory_.insert(pair_time_point);
   }
   /* ROS_INFO("[TfToPath] inserted msg"); */
