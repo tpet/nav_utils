@@ -29,7 +29,7 @@ namespace nav_utils
 {
 
 /* std::pair<double, geometry_msgs::Point> transform_stamped_to_time_point_pair(const geometry_msgs::TransformStamped &tf); */
-geometry_msgs::PoseStamped pair_to_pose(const time_point &p);
+geometry_msgs::PoseStamped pair_to_pose_stamped(const time_point &p);
 geometry_msgs::Point       transform_to_point(const geometry_msgs::Transform &tf);
 double                     squared_norm(const geometry_msgs::Point &point_A, const geometry_msgs::Point &point_B);
 double                     squared_norm(const time_point &point_A, const time_point &point_B);
@@ -46,8 +46,8 @@ private:
   tf2_client::BufferPtr buffer_;
   ros::Duration         lookup_timeout_;
 
-  std::string              parent_frame_;
-  std::vector<std::string> children_frames_;
+  std::string parent_frame_;
+  std::string child_frame_;
 
   std::mutex                           mutex_trajectory_;
   std::set<time_point, time_point_cmp> trajectory_;  // Ordered set by time

@@ -1,0 +1,17 @@
+<launch>
+
+  <arg name="ROBOT_NAME" default="$(env UAV_NAME)" />
+
+  <node name="tf_to_path" pkg="nav_utils" type="tf_to_path" output="screen" respawn="true" respawn_delay="0.5">
+    
+    <param name="parent_frame" value="subt" />
+    <param name="child_frame" value="$(arg ROBOT_NAME)/fcu" />
+    <param name="sample_distance" value="0.5" />
+    <param name="pub_freq" value="1.0" />
+
+    <remap from="tf_msg" to="/$(arg ROBOT_NAME)/tf_slow"/>
+    <remap from="path" to="/$(arg ROBOT_NAME)/path"/>
+
+  </node>
+
+</launch>

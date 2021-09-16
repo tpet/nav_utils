@@ -5,7 +5,7 @@
 namespace nav_utils
 {
 
-geometry_msgs::PoseStamped pair_to_pose(const time_point &p) {
+geometry_msgs::PoseStamped pair_to_pose_stamped(const time_point &p) {
   geometry_msgs::PoseStamped pose;
   ros::Time                  stamp;
   stamp.fromSec(p.first);
@@ -36,18 +36,15 @@ geometry_msgs::Point transform_to_point(const geometry_msgs::Transform &tf) {
 TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : sub_queue_size_(5) {
 
   pnh.getParam("parent_frame", parent_frame_);
-  pnh.getParam("children_frames", children_frames_);
+  pnh.getParam("child_frame", child_frame_);
 
-  if (parent_frame_.empty() || children_frames_.empty()) {
-    ROS_ERROR("[TfToPath] Parent and/or children frames are empty, nothing to do.");
+  if (parent_frame_.empty() || child_frame_.empty()) {
+    ROS_ERROR("[TfToPath] Parent and/or child frame is empty, nothing to do.");
     ros::shutdown();
   }
 
-  ROS_ERROR("[TfToPath] Allowed parent frame: %s.", parent_frame_.c_str());
-  ROS_ERROR("[TfToPath] Allowed children frames:");
-  for (const auto &child : children_frames_) {
-    ROS_ERROR("[TfToPath]  - %s", child.c_str());
-  }
+  ROS_INFO("[TfToPath] Allowed parent frame: %s.", parent_frame_.c_str());
+  ROS_INFO("[TfToPath] Allowed child frame: %s.", child_frame_.c_str());
 
   float sample_distance;
   pnh.param("sample_distance", sample_distance, 0.2f);
@@ -65,37 +62,43 @@ TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : su
 /*//{ callbackTfMsg() */
 void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
 
+  ROS_INFO_ONCE("[TfToPath] Getting first tf msg.");
+
   // Process the message further only if the child frame is among the specified frames
   bool                            process = false;
   geometry_msgs::TransformStamped tf_valid;
   for (const auto &tf : msg->transforms) {
 
-    const bool child_frame_lookup = std::find(children_frames_.begin(), children_frames_.end(), tf.child_frame_id) != children_frames_.end();
-    if (child_frame_lookup) {
+    if (tf.child_frame_id == child_frame_) {
       tf_valid = tf;
       process  = true;
       break;
     }
   }
 
-  if (!process)
+  if (!process) {
+    ROS_INFO_ONCE("[TfToPath] Message child frame is not allowed (only %s is). Skipping tf msg.", child_frame_.c_str());
     return;
+  }
 
   time_point pair_time_point;
 
   // Parent frame equal, we already have the transform
   if (tf_valid.header.frame_id == parent_frame_) {
 
+    /* ROS_INFO("[TfToPath] no lookup"); */
     pair_time_point = std::make_pair(tf_valid.header.stamp.toSec(), transform_to_point(tf_valid.transform));
   }
   // Lookup for tf if we don't know the transform parent->child
   else {
+    /* ROS_INFO("[TfToPath] lookup"); */
 
     try {
       const auto tf_msg = buffer_->lookupTransform(parent_frame_, tf_valid.child_frame_id, tf_valid.header.stamp, lookup_timeout_);
-      pair_time_point   = std::make_pair(tf_valid.header.stamp.toSec(), transform_to_point(tf_msg.transform));
+      pair_time_point   = std::make_pair(tf_msg.header.stamp.toSec(), transform_to_point(tf_msg.transform));
     }
     catch (...) {
+      ROS_INFO("[TfToPath] Could not transform frame %s to frame %s.", tf_valid.child_frame_id.c_str(), parent_frame_.c_str());
       return;
     }
   }
@@ -159,7 +162,7 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
 
     auto it_from = trajectory_.begin();
     poses.resize(trajectory_.size());
-    poses.at(k++) = pair_to_pose(*it_from);
+    poses.at(k++) = pair_to_pose_stamped(*it_from);
 
     if (poses.size() == 1)
       return poses;
@@ -173,7 +176,7 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
 
       // Add sample
       if (norm_sq > sample_distance_squared_) {
-        poses.at(k++) = pair_to_pose(*it_to);
+        poses.at(k++) = pair_to_pose_stamped(*it_to);
         it_from       = it_to;
       }
 
