@@ -37,14 +37,16 @@ TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : su
 
   pnh.getParam("parent_frame", parent_frame_);
   pnh.getParam("child_frame", child_frame_);
+  pnh.param("stamp_trigger_frame", stamp_trigger_frame_, child_frame_);
 
-  if (parent_frame_.empty() || child_frame_.empty()) {
+  if (parent_frame_.empty() || child_frame_.empty() || stamp_trigger_frame_.empty()) {
     ROS_ERROR("[TfToPath] Parent and/or child frame is empty, nothing to do.");
     ros::shutdown();
   }
 
-  ROS_INFO("[TfToPath] Allowed parent frame: %s.", parent_frame_.c_str());
-  ROS_INFO("[TfToPath] Allowed child frame: %s.", child_frame_.c_str());
+  ROS_INFO("[TfToPath] Parent frame: %s.", parent_frame_.c_str());
+  ROS_INFO("[TfToPath] Child frame: %s.", child_frame_.c_str());
+  ROS_INFO("[TfToPath] Frame whose direct changes trigger adding a trajectory point: %s.", stamp_trigger_frame_.c_str());
 
   float sample_distance;
   pnh.param("sample_distance", sample_distance, 0.2f);
@@ -69,7 +71,7 @@ void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
   geometry_msgs::TransformStamped tf_valid;
   for (const auto &tf : msg->transforms) {
 
-    if (tf.child_frame_id == child_frame_) {
+    if (tf.child_frame_id == stamp_trigger_frame_) {
       tf_valid = tf;
       process  = true;
       break;
@@ -77,14 +79,15 @@ void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
   }
 
   if (!process) {
-    ROS_INFO_ONCE("[TfToPath] Message child frame is not allowed (only %s is). Skipping tf msg.", child_frame_.c_str());
     return;
   }
+
+  ROS_INFO_ONCE("[TfToPath] First valid stamp trigger tf message received.");
 
   time_point pair_time_point;
 
   // Parent frame equal, we already have the transform
-  if (tf_valid.header.frame_id == parent_frame_) {
+  if (tf_valid.header.frame_id == parent_frame_ && tf_valid.child_frame_id == child_frame_) {
 
     /* ROS_INFO("[TfToPath] no lookup"); */
     pair_time_point = {tf_valid.header.stamp.toSec(), transform_to_point(tf_valid.transform)};
@@ -94,7 +97,7 @@ void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
     /* ROS_INFO("[TfToPath] lookup"); */
 
     try {
-      const auto tf_msg = buffer_->lookupTransform(parent_frame_, tf_valid.child_frame_id, tf_valid.header.stamp, lookup_timeout_);
+      const auto tf_msg = buffer_->lookupTransform(parent_frame_, child_frame_, tf_valid.header.stamp, lookup_timeout_);
       pair_time_point = {tf_msg.header.stamp.toSec(), transform_to_point(tf_msg.transform)};
     }
     catch (...) {
@@ -134,14 +137,14 @@ void TransformToPath::publishTimerCallback(const ros::TimerEvent &event) {
   path_msg->poses = trajectoryToPath();
 
   // Do not publish unchanged paths
-  if (path_msg->poses.empty() || path_msg->poses.size() == prev_path_size_) {
+  if (path_msg->poses.empty() || path_msg->poses == prev_path_.poses) {
     /* ROS_INFO("[TfToPath] won't publish empty path (path size: %ld, prev path size: %d)", path_msg->poses.size(), prev_path_size_); */
     return;
   }
 
   try {
     pub_path_.publish(path_msg);
-    prev_path_size_ = path_msg->poses.size();
+    prev_path_.poses = path_msg->poses;
   }
   catch (...) {
     ROS_ERROR("[TfToPath] Exception caught during publishing on topic: %s.", pub_path_.getTopic().c_str());

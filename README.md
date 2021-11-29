@@ -12,6 +12,15 @@ Converts *tf* transforms to odometry messages.<br>
 Allows two-phase transform lookup with the root using latest transform without waiting.
 This is useful e.g. for fast *map*-to-*base_link* odometry from slow *map*-to-*odom* transforms.
 
+## `tf_to_path`
+Converts *tf* transforms to path messages.<br>
+Allows out-of-order transform messages to come and adds older measurements to the correct
+place in the path. The individual path points are looked up at times when the `stamp_trigger_frame`
+frame is updated on the `tf_msg` topic (the idea is that points on the path have the very same timestamps as
+your robot's odometry). Do not forget to remap `tf_msg` to the actual TF topic. `stamp_trigger_frame`
+is by default the same as `child_frame`, but you have to set it different e.g. if your `child_frame`
+is a static transform to the actual top-level body link.
+
 ## `tf_fast_repeater`
 Use this if a transform you have needs to be republished on a higher frequency
 always with current timestamp (to allow constant extrapolation of the transform).
