@@ -17,7 +17,12 @@
 #include <mutex>
 #include <set>
 
-using time_point = std::pair<double, geometry_msgs::Point>;
+struct time_point
+{
+  double first;
+  mutable geometry_msgs::Point second;
+};
+
 struct time_point_cmp
 {
   bool operator()(const time_point &lhs, const time_point &rhs) const {

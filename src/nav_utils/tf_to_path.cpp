@@ -87,7 +87,7 @@ void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
   if (tf_valid.header.frame_id == parent_frame_) {
 
     /* ROS_INFO("[TfToPath] no lookup"); */
-    pair_time_point = std::make_pair(tf_valid.header.stamp.toSec(), transform_to_point(tf_valid.transform));
+    pair_time_point = {tf_valid.header.stamp.toSec(), transform_to_point(tf_valid.transform)};
   }
   // Lookup for tf if we don't know the transform parent->child
   else {
@@ -95,11 +95,13 @@ void TransformToPath::callbackTfMsg(const tf2_msgs::TFMessage::ConstPtr &msg) {
 
     try {
       const auto tf_msg = buffer_->lookupTransform(parent_frame_, tf_valid.child_frame_id, tf_valid.header.stamp, lookup_timeout_);
-      pair_time_point   = std::make_pair(tf_msg.header.stamp.toSec(), transform_to_point(tf_msg.transform));
+      pair_time_point = {tf_msg.header.stamp.toSec(), transform_to_point(tf_msg.transform)};
     }
     catch (...) {
-      ROS_INFO("[TfToPath] Could not transform frame %s to frame %s.", tf_valid.child_frame_id.c_str(), parent_frame_.c_str());
-      return;
+      // if we can't transform the point right now, save it for later when its transform is available
+      geometry_msgs::Point unknown_point;
+      unknown_point.x = unknown_point.y = unknown_point.z = std::numeric_limits<double>::quiet_NaN();
+      pair_time_point = {tf_valid.header.stamp.toSec(), unknown_point};
     }
   }
 
@@ -162,16 +164,46 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
 
     auto it_from = trajectory_.begin();
     poses.resize(trajectory_.size());
+
+    // find the first point for which we have or can find a transform
+    while (it_from != trajectory_.end() && std::isnan(pair_to_pose_stamped(*it_from).pose.position.x))
+    {
+      try {
+        const auto tf_msg = buffer_->lookupTransform(parent_frame_, child_frame_, ros::Time(it_from->first), ros::Duration(0));
+        it_from->second = transform_to_point(tf_msg.transform);
+        break;
+      } catch (...)
+      {
+        it_from++;
+      }
+    }
+    if (it_from == trajectory_.end())
+      return poses;
+
     poses.at(k++) = pair_to_pose_stamped(*it_from);
 
     if (poses.size() == 1)
       return poses;
 
     auto it_to = trajectory_.begin();
+    while (it_to != it_from)
+      it_to++;
     it_to++;
 
     while (it_to != trajectory_.end()) {
-
+      // try to find the missing point transform, but do not lose any time in the lookup timeout
+      if (std::isnan(pair_to_pose_stamped(*it_to).pose.position.x))
+      {
+        try {
+          const auto tf_msg = buffer_->lookupTransform(parent_frame_, child_frame_, ros::Time(it_to->first), ros::Duration(0));
+          it_to->second = transform_to_point(tf_msg.transform);
+        } catch (...)
+        {
+          it_to++;
+          continue;
+        }
+      }
+      
       const double norm_sq = squared_norm(*it_from, *it_to);
 
       // Add sample
