@@ -55,6 +55,7 @@ TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : su
   lookup_timeout_ = ros::Duration(1.0 / publish_frequency_);
   // Warning: setting this to true might impact performance; verify how it behaves in your case!
   pnh.param("recompute_whole_path", recompute_whole_path_, false);
+  pnh.param("prune_trajectory", prune_trajectory_, true);
 
   buffer_ = tf2_client::get_buffer(nh, pnh);
   
@@ -222,14 +223,20 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
         poses.at(k++) = pair_to_pose_stamped(*it_to);
         it_from       = it_to;
       }
-
-      // TODO: we could erase samples actually
-
+      // or erase it in case we have just resolved some TFs and they're too close
+      else if (prune_trajectory_) {
+        // erase returns iterator to the next element after the erased one
+        it_to = trajectory_.erase(it_to);
+        continue;
+      }
+      
       it_to++;
     }
 
     if (k != poses.size())
       poses.resize(k);
+
+    ROS_DEBUG_STREAM("[TfToPath] Trajectory size " << trajectory_.size());
   }
 
   /* ROS_INFO("[%s]: Poses:", ros::this_node::getName().c_str()); */
