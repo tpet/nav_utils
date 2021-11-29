@@ -17,7 +17,12 @@
 #include <mutex>
 #include <set>
 
-using time_point = std::pair<double, geometry_msgs::Point>;
+struct time_point
+{
+  double first;
+  mutable geometry_msgs::Point second;
+};
+
 struct time_point_cmp
 {
   bool operator()(const time_point &lhs, const time_point &rhs) const {
@@ -48,6 +53,9 @@ private:
 
   std::string parent_frame_;
   std::string child_frame_;
+  std::string stamp_trigger_frame_;
+  bool        recompute_whole_path_;
+  bool        prune_trajectory_;
 
   std::mutex                           mutex_trajectory_;
   std::set<time_point, time_point_cmp> trajectory_;  // Ordered set by time
@@ -57,15 +65,9 @@ private:
 
   int sub_queue_size_;
 
-  int prev_path_size_ = 0;
+  nav_msgs::Path prev_path_;
 
 public:
   TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh);
-
-  /* std_msgs::Header    extract_header(const topic_tools::ShapeShifter &msg); */
-  /* geometry_msgs::Pose lookupPose(const ros::Time &stamp, const std::string &child_frame); */
-  /* void                publishMessages(const ros::Time &stamp, const std::string &child_frame); */
-  /* void                triggerReceived(const topic_tools::ShapeShifter &msg); */
-  /* void                timerCallback(const ros::TimerEvent &event); */
 };
 }  // namespace nav_utils
