@@ -54,6 +54,7 @@ private:
   std::string parent_frame_;
   std::string child_frame_;
   std::string stamp_trigger_frame_;
+  bool        recompute_whole_path_;
 
   std::mutex                           mutex_trajectory_;
   std::set<time_point, time_point_cmp> trajectory_;  // Ordered set by time

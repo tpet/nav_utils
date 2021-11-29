@@ -53,9 +53,17 @@ TransformToPath::TransformToPath(ros::NodeHandle &nh, ros::NodeHandle &pnh) : su
   sample_distance_squared_ = sample_distance * sample_distance;
   pnh.param("pub_freq", publish_frequency_, 1.0f);
   lookup_timeout_ = ros::Duration(1.0 / publish_frequency_);
+  // Warning: setting this to true might impact performance; verify how it behaves in your case!
+  pnh.param("recompute_whole_path", recompute_whole_path_, false);
 
   buffer_ = tf2_client::get_buffer(nh, pnh);
+  
+  const auto is_remote_tf_server = !pnh.param("tf_server", std::string()).empty();
+  const auto local_tf_cache_time = pnh.param("tf_cache_time", 10);
 
+  if (recompute_whole_path_ && !is_remote_tf_server && local_tf_cache_time <= 10)
+    ROS_WARN("[TfToPath] Recomputing of whole path is set but ~tf_cache_time is not set or too small. The TF buffer will very likely be too small!");
+  
   pub_path_       = nh.advertise<nav_msgs::Path>("path", 1);
   sub_tf_msg_     = nh.subscribe("tf_msg", static_cast<uint32_t>(sub_queue_size_), &TransformToPath::callbackTfMsg, this, ros::TransportHints().tcpNoDelay());
   timer_pub_path_ = nh.createTimer(ros::Rate(publish_frequency_), &TransformToPath::publishTimerCallback, this);
@@ -169,7 +177,7 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
     poses.resize(trajectory_.size());
 
     // find the first point for which we have or can find a transform
-    while (it_from != trajectory_.end() && std::isnan(pair_to_pose_stamped(*it_from).pose.position.x))
+    while (it_from != trajectory_.end() && (recompute_whole_path_ || std::isnan(pair_to_pose_stamped(*it_from).pose.position.x)))
     {
       try {
         const auto tf_msg = buffer_->lookupTransform(parent_frame_, child_frame_, ros::Time(it_from->first), ros::Duration(0));
@@ -195,7 +203,7 @@ std::vector<geometry_msgs::PoseStamped> TransformToPath::trajectoryToPath() {
 
     while (it_to != trajectory_.end()) {
       // try to find the missing point transform, but do not lose any time in the lookup timeout
-      if (std::isnan(pair_to_pose_stamped(*it_to).pose.position.x))
+      if (recompute_whole_path_ || std::isnan(pair_to_pose_stamped(*it_to).pose.position.x))
       {
         try {
           const auto tf_msg = buffer_->lookupTransform(parent_frame_, child_frame_, ros::Time(it_to->first), ros::Duration(0));
