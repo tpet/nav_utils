@@ -17,6 +17,8 @@ class OdometryToTransform {
 private:
     tf2_ros::TransformBroadcaster tf_pub_;
     ros::Subscriber odom_sub_;
+    std::string parent_frame_;
+    std::string child_frame_;
 public:
     OdometryToTransform(ros::NodeHandle &nh, ros::NodeHandle &pnh);
     void odometryReceived(const nav_msgs::Odometry &msg);

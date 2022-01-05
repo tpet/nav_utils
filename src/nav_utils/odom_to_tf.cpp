@@ -23,12 +23,19 @@ geometry_msgs::TransformStamped odometry_to_transform(const nav_msgs::Odometry &
 
 OdometryToTransform::OdometryToTransform(ros::NodeHandle &nh, ros::NodeHandle &pnh)
 {
+    pnh.param("parent_frame", parent_frame_, parent_frame_);
+    pnh.param("child_frame", child_frame_, child_frame_);
     odom_sub_ = nh.subscribe("odom", 5, &OdometryToTransform::odometryReceived, this);
 }
 
 void OdometryToTransform::odometryReceived(const nav_msgs::Odometry &msg)
 {
-    tf_pub_.sendTransform(odometry_to_transform(msg));
+    geometry_msgs::TransformStamped tf = odometry_to_transform(msg);
+    if (!parent_frame_.empty())
+        tf.header.frame_id = parent_frame_;
+    if (!child_frame_.empty())
+        tf.child_frame_id = child_frame_;
+    tf_pub_.sendTransform(tf);
 }
 
 }
