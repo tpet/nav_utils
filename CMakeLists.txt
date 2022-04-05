@@ -138,6 +138,7 @@ catkin_install_python(PROGRAMS
     scripts/tf_connect
     scripts/tf_filter
     scripts/tf_metrics
+    scripts/quaternion_to_azimuth
     DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
