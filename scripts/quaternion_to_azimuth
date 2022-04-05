@@ -41,20 +41,23 @@ class Quaternion():
         eul = self.get_eul()
         return eul[2]
 
-    def get_azimuth(self, enu):
+    def get_azimuth(self, coordinates):
         """ Returns azimuth. Either convert from ENU to NED or already in NED.
             Move from (-pi,pi) to (0,2*pi). """
         yaw = self.get_yaw()
-        if enu:
-            return (-(self.get_yaw() - pi/2)) % (2*pi)
-        else:
+        if coordinates == "enu":
+            return (-(yaw - pi/2)) % (2*pi)
+        elif coordinates == "ned":
             return yaw % (2*pi)
+        else:
+            raise ValueError("Coordinate system \"%s\" not supported. Supported coordinate systems are \"enu\" and \"ned\"." % coordinates)
+
 
 class QuaternionToAzimuth():
     """ Listen to IMU quaternion orientation. Tranfsorm to base_link frame. Publish yaw (=azimuth). """
-    def __init__(self, enu):
+    def __init__(self, coordinates):
         self.q = Quaternion()
-        self.enu = enu
+        self.coordinates = coordinates
         self.trans = None
 
         self.pub_azimuth = rospy.Publisher('azimuth', stamped_msgs.msg.Float64, queue_size=10)
@@ -80,7 +83,7 @@ class QuaternionToAzimuth():
 
             pub_msg = stamped_msgs.msg.Float64()
             pub_msg.header = msg.header     # Copy header from IMU message (does not copy sequence).
-            pub_msg.data = self.q.get_azimuth(self.enu)  
+            pub_msg.data = self.q.get_azimuth(self.coordinates)  
         
             self.pub_azimuth.publish(pub_msg)
 
@@ -98,8 +101,8 @@ class QuaternionToAzimuth():
 def main():
     rospy.init_node('azimuth')
 
-    enu = float(rospy.get_param('~enu', True))   # Value to add to yaw for it to be north oriented. Default value for ENU.
-    node = QuaternionToAzimuth(enu)                            
+    coordinates = rospy.get_param('~coordinates', "enu")   # Either enu or ned.
+    node = QuaternionToAzimuth(coordinates)                            
     
     node.run()
 
