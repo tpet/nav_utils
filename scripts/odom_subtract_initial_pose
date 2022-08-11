@@ -1,0 +1,242 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: Czech Technical University in Prague
+
+"""
+Subtract the pose of the first message from odom messages.
+"""
+import copy
+import numpy as np
+import time
+
+import rospy
+import tf2_ros
+from geometry_msgs.msg import Point, Quaternion
+from nav_msgs.msg import Odometry
+from tf.transformations import quaternion_from_euler, quaternion_multiply, quaternion_matrix, quaternion_from_matrix, translation_matrix
+from tf2_ros import TransformStamped
+from tf2_ros import Buffer, TransformListener
+import tf2_geometry_msgs
+
+from ros_numpy import numpify, msgify
+
+
+def transform_covariance(cov_in, rotation_quat):
+    # Converting the Quaternion to a Rotation Matrix first
+    # Taken from: https://automaticaddison.com/how-to-convert-a-quaternion-to-a-rotation-matrix/
+    q0 = rotation_quat[3]
+    q1 = rotation_quat[0]
+    q2 = rotation_quat[1]
+    q3 = rotation_quat[2]
+
+    # # First row of the rotation matrix
+    # r00 = 2 * (q0 * q0 + q1 * q1) - 1
+    # r01 = 2 * (q1 * q2 - q0 * q3)
+    # r02 = 2 * (q1 * q3 + q0 * q2)
+    # 
+    # # Second row of the rotation matrix
+    # r10 = 2 * (q1 * q2 + q0 * q3)
+    # r11 = 2 * (q0 * q0 + q2 * q2) - 1
+    # r12 = 2 * (q2 * q3 - q0 * q1)
+    # 
+    # # Third row of the rotation matrix
+    # r20 = 2 * (q1 * q3 - q0 * q2)
+    # r21 = 2 * (q2 * q3 + q0 * q1)
+    # r22 = 2 * (q0 * q0 + q3 * q3) - 1
+
+    # Code reference: https://github.com/ros2/geometry2/pull/430
+    # Mathematical Reference:
+    # A. L. Garcia, “Linear Transformations of Random Vectors,” in Probability,
+    # Statistics, and Random Processes For Electrical Engineering, 3rd ed.,
+    # Pearson Prentice Hall, 2008, pp. 320–322.
+
+    R = quaternion_matrix([q1, q2, q3, q0])[0:3, 0:3]
+    # R =  np.array([[r00, r01, r02],
+    #                [r10, r11, r12],
+    #                [r20, r21, r22]])
+
+    R_transpose = np.transpose(R)
+
+    cov_11 = np.array([cov_in[:3], cov_in[6:9], cov_in[12:15]])
+    cov_12 = np.array([cov_in[3:6], cov_in[9:12], cov_in[15:18]])
+    cov_21 = np.array([cov_in[18:21], cov_in[24:27], cov_in[30:33]])
+    cov_22 = np.array([cov_in[21:24], cov_in[27:30], cov_in[33:]])
+
+    # And we perform the transform
+    result_11 = np.matmul(np.matmul(R, cov_11), R_transpose)
+    result_12 = np.matmul(np.matmul(R, cov_12), R_transpose)
+    result_21 = np.matmul(np.matmul(R, cov_21), R_transpose)
+    result_22 = np.matmul(np.matmul(R, cov_22), R_transpose)
+
+    cov_out = [0 for _ in range(6 * 6)]
+
+    cov_out[0] = result_11[0][0]
+    cov_out[1] = result_11[0][1]
+    cov_out[2] = result_11[0][2]
+    cov_out[6] = result_11[1][0]
+    cov_out[7] = result_11[1][1]
+    cov_out[8] = result_11[1][2]
+    cov_out[12] = result_11[2][0]
+    cov_out[13] = result_11[2][1]
+    cov_out[14] = result_11[2][2]
+
+    cov_out[3] = result_12[0][0]
+    cov_out[4] = result_12[0][1]
+    cov_out[5] = result_12[0][2]
+    cov_out[9] = result_12[1][0]
+    cov_out[10] = result_12[1][1]
+    cov_out[11] = result_12[1][2]
+    cov_out[15] = result_12[2][0]
+    cov_out[16] = result_12[2][1]
+    cov_out[17] = result_12[2][2]
+
+    cov_out[18] = result_21[0][0]
+    cov_out[19] = result_21[0][1]
+    cov_out[20] = result_21[0][2]
+    cov_out[24] = result_21[1][0]
+    cov_out[25] = result_21[1][1]
+    cov_out[26] = result_21[1][2]
+    cov_out[30] = result_21[2][0]
+    cov_out[31] = result_21[2][1]
+    cov_out[32] = result_21[2][2]
+
+    cov_out[21] = result_22[0][0]
+    cov_out[22] = result_22[0][1]
+    cov_out[23] = result_22[0][2]
+    cov_out[27] = result_22[1][0]
+    cov_out[28] = result_22[1][1]
+    cov_out[29] = result_22[1][2]
+    cov_out[33] = result_22[2][0]
+    cov_out[34] = result_22[2][1]
+    cov_out[35] = result_22[2][2]
+
+    return cov_out
+
+
+class OdomSubtractInitialPose(object):
+    """ Listen to IMU quaternion orientation. Tranfsorm to base_link frame. Publish yaw (=azimuth). """
+
+    def __init__(self):
+        self._new_parent_frame = rospy.get_param("~new_parent_frame", None)
+        self._transform_child_frame = rospy.get_param("~transform_child_frame", None)
+        self._transform_child_frame_ignore_rot = rospy.get_param("~transform_child_frame_ignore_rot", False)
+        self._initial_position = rospy.get_param("~initial_position", None)
+        self._initial_rotation = rospy.get_param("~initial_rotation", None)
+        self._stamp_offset = rospy.Duration(float(rospy.get_param("~stamp_offset", 0.0)))
+        self._ignore_msgs_before_time = rospy.get_param("~ignore_msgs_before_time", None)
+        if self._ignore_msgs_before_time is not None:
+            self._ignore_msgs_before_time = rospy.Time(float(self._ignore_msgs_before_time))
+
+        if self._transform_child_frame is not None:
+            self._buffer = Buffer()
+            self._tf_listener = TransformListener(self._buffer)
+
+        self._pub = rospy.Publisher('~odom_out', Odometry, queue_size=10)
+        self._sub = rospy.Subscriber('~odom_in', Odometry, self.cb, queue_size=10)
+        self._initial_pose = None
+        self._transform = None
+        self._last_time = rospy.Time.now()
+
+    def cb(self, msg):
+        assert isinstance(msg, Odometry)
+
+        if rospy.Time.now() < self._last_time:
+            rospy.loginfo(rospy.get_name() + ": ROS time jumped back, resetting.")
+            self._initial_pose = None
+        self._last_time = rospy.Time.now()
+
+        stamp = msg.header.stamp + self._stamp_offset
+        if self._ignore_msgs_before_time is not None and stamp < self._ignore_msgs_before_time:
+            return
+
+        if self._initial_pose is None:
+            self._initial_pose = copy.deepcopy(msg.pose.pose)
+            if self._initial_position is not None:
+                self._initial_pose.position = msgify(Point, np.array(self._initial_position))
+            if self._initial_rotation is not None:
+                if len(self._initial_rotation) == 3:
+                    q = quaternion_from_euler(*self._initial_rotation)
+                else:
+                    q = np.array(self._initial_rotation)
+                self._initial_pose.orientation = msgify(Quaternion, q)
+            rospy.loginfo(rospy.get_name() + ": Initial pose is " + str(self._initial_pose))
+
+            self._transform = np.asarray(np.asmatrix(numpify(self._initial_pose)).I)
+            self._quat = quaternion_from_matrix(self._transform)
+
+            if self._transform_child_frame is not None:
+                while not rospy.is_shutdown():
+                    try:
+                        new_to_old_child = self._buffer.lookup_transform(msg.child_frame_id, self._transform_child_frame, msg.header.stamp, rospy.Duration(5.0))
+                        new_to_old_child_np = numpify(new_to_old_child.transform)
+                        self._transform = np.matmul(new_to_old_child_np, self._transform)
+                        self._quat = quaternion_from_matrix(self._transform)
+                        break
+                    except tf2_ros.TransformException as e:
+                        rospy.logerr(str(e))
+                        time.sleep(0.1)
+
+        transform = copy.deepcopy(self._transform)
+        quat = copy.deepcopy(self._quat)
+        if self._transform_child_frame is not None:
+            for _ in range(5):
+                try:
+                    old_to_new_child = self._buffer.lookup_transform(self._transform_child_frame, msg.child_frame_id, msg.header.stamp, rospy.Duration(1))
+                    old_to_new_child_np = numpify(old_to_new_child.transform)
+                    transform = np.matmul(old_to_new_child_np, transform)
+                    quat = quaternion_from_matrix(transform)
+                    break
+                except tf2_ros.TransformException as e:
+                    rospy.logerr(str(e))
+                    time.sleep(0.1)
+
+        pose = msg.pose.pose
+        new_msg = Odometry()
+        new_msg.header.frame_id = msg.header.frame_id
+        new_msg.header.stamp = stamp
+        if self._new_parent_frame is not None:
+            new_msg.header.frame_id = self._new_parent_frame
+        new_msg.child_frame_id = msg.child_frame_id if self._transform_child_frame is None else self._transform_child_frame
+        pos = np.array((pose.position.x, pose.position.y, pose.position.z, 1))
+        new_pos = np.matmul(transform, pos)
+        new_pos = new_pos / new_pos[3]
+        new_msg.pose.pose.position.x = new_pos[0]
+        new_msg.pose.pose.position.y = new_pos[1]
+        new_msg.pose.pose.position.z = new_pos[2]
+        rot = np.array((pose.orientation.x, pose.orientation.y, pose.orientation.z, pose.orientation.w))
+        new_rot = quaternion_multiply(quat, rot)
+        new_msg.pose.pose.orientation.x = new_rot[0]
+        new_msg.pose.pose.orientation.y = new_rot[1]
+        new_msg.pose.pose.orientation.z = new_rot[2]
+        new_msg.pose.pose.orientation.w = new_rot[3]
+        new_msg.pose.covariance = transform_covariance(msg.pose.covariance, quat)
+        twist = msg.twist.twist
+        lin = np.array((twist.linear.x, twist.linear.y, twist.linear.z))
+        new_lin = np.matmul(transform[0:3, 0:3], lin)
+        new_msg.twist.twist.linear.x = new_lin[0]
+        new_msg.twist.twist.linear.y = new_lin[1]
+        new_msg.twist.twist.linear.z = new_lin[2]
+        ang = np.array((twist.angular.x, twist.angular.y, twist.angular.z))
+        new_ang = np.matmul(transform[0:3, 0:3], ang)
+        new_msg.twist.twist.angular.x = new_ang[0]
+        new_msg.twist.twist.angular.y = new_ang[1]
+        new_msg.twist.twist.angular.z = new_ang[2]
+        new_msg.twist.covariance = transform_covariance(msg.twist.covariance, quat)
+
+        self._pub.publish(new_msg)
+
+    def run(self):
+        rospy.spin()
+
+
+def main():
+    rospy.init_node('odom_subtract_initial_pose')
+
+    node = OdomSubtractInitialPose()
+    node.run()
+
+
+if __name__ == '__main__':
+    main()

@@ -19,6 +19,7 @@ private:
     ros::Subscriber odom_sub_;
     std::string parent_frame_;
     std::string child_frame_;
+    bool invert_tf_{false};
 public:
     OdometryToTransform(ros::NodeHandle &nh, ros::NodeHandle &pnh);
     void odometryReceived(const nav_msgs::Odometry &msg);

@@ -26,6 +26,8 @@
     <depend>tf2_eigen</depend>
     <depend>tf2_ros</depend>
     <depend>topic_tools</depend>
+    
+    <exec_depend>ros_numpy</exec_depend>
 
     <export>
         <nodelet plugin="${prefix}/nav_utils_plugins.xml" />
