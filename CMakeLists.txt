@@ -112,6 +112,13 @@ add_executable(position_to_odom
 add_dependencies(position_to_odom nav_utils_generate_messages)
 target_link_libraries(position_to_odom ${catkin_LIBRARIES})
 
+add_executable(orient_frame
+        src/nav_utils/orient_frame.cpp
+        src/nav_utils/orient_frame_node.cpp
+        )
+add_dependencies(orient_frame nav_utils_generate_messages)
+target_link_libraries(orient_frame ${catkin_LIBRARIES})
+
 #add_executable(test_timer_pub
 #    test/test_timer_pub.cpp
 #)
