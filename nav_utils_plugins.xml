@@ -13,6 +13,13 @@
             Odometry message processing.
         </description>
     </class>
+    <class name="nav_utils/odom_downsample"
+           type="nav_utils::OdometryDownsampleNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Downsample odometry.
+        </description>
+    </class>
     <class name="nav_utils/tf_to_odom"
            type="nav_utils::TransformToOdometryNodelet"
            base_class_type="nodelet::Nodelet">

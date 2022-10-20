@@ -46,6 +46,12 @@ add_executable(odom_proc
 )
 target_link_libraries(odom_proc ${catkin_LIBRARIES})
 
+add_executable(odom_downsample
+    src/nav_utils/odom_downsample.cpp
+    src/nav_utils/odom_downsample_node.cpp
+)
+target_link_libraries(odom_downsample ${catkin_LIBRARIES})
+
 add_executable(odom_to_tf
     src/nav_utils/odom_to_tf.cpp
     src/nav_utils/odom_to_tf_node.cpp
@@ -127,6 +133,8 @@ target_link_libraries(orient_frame ${catkin_LIBRARIES})
 add_library(${PROJECT_NAME}_plugins
     src/nav_utils/odom_proc.cpp
     src/nav_utils/odom_proc_nodelet.cpp
+    src/nav_utils/odom_downsample.cpp
+    src/nav_utils/odom_downsample_nodelet.cpp
     src/nav_utils/odom_to_tf.cpp
     src/nav_utils/odom_to_tf_nodelet.cpp
     src/nav_utils/tf_copy.cpp
@@ -152,6 +160,7 @@ catkin_install_python(PROGRAMS
 install(
     TARGETS
         odom_proc
+        odom_downsample
         odom_to_tf
         tf_to_odom
         tf_to_path
