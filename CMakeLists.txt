@@ -46,6 +46,18 @@ add_executable(odom_proc
 )
 target_link_libraries(odom_proc ${catkin_LIBRARIES})
 
+add_executable(odom_twist_to_child_frame
+  src/nav_utils/odom_twist_to_child_frame.cpp
+  src/nav_utils/odom_twist_to_child_frame_node.cpp
+)
+target_link_libraries(odom_twist_to_child_frame ${catkin_LIBRARIES})
+
+add_executable(odom_recompute_twist
+    src/nav_utils/odom_recompute_twist.cpp
+    src/nav_utils/odom_recompute_twist_node.cpp
+)
+target_link_libraries(odom_recompute_twist ${catkin_LIBRARIES})
+
 add_executable(odom_to_tf
     src/nav_utils/odom_to_tf.cpp
     src/nav_utils/odom_to_tf_node.cpp
@@ -127,6 +139,10 @@ target_link_libraries(orient_frame ${catkin_LIBRARIES})
 add_library(${PROJECT_NAME}_plugins
     src/nav_utils/odom_proc.cpp
     src/nav_utils/odom_proc_nodelet.cpp
+  src/nav_utils/odom_twist_to_child_frame.cpp
+  src/nav_utils/odom_twist_to_child_frame_nodelet.cpp
+    src/nav_utils/odom_recompute_twist.cpp
+    src/nav_utils/odom_recompute_twist_nodelet.cpp
     src/nav_utils/odom_to_tf.cpp
     src/nav_utils/odom_to_tf_nodelet.cpp
     src/nav_utils/tf_copy.cpp
@@ -152,6 +168,8 @@ catkin_install_python(PROGRAMS
 install(
     TARGETS
         odom_proc
+        odom_twist_to_child_frame
+        odom_recompute_twist
         odom_to_tf
         tf_to_odom
         tf_to_path

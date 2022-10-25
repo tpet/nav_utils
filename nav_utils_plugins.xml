@@ -13,6 +13,20 @@
             Odometry message processing.
         </description>
     </class>
+    <class name="nav_utils/odom_twist_to_child_frame"
+           type="nav_utils::OdometryTwistToChildFrameNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Fix twist in odometry messages to be in child frame if it is incorrectly reported in the odometry frame.
+        </description>
+    </class>
+    <class name="nav_utils/odom_recompute_twist"
+           type="nav_utils::OdometryRecomputeTwistNodelet"
+           base_class_type="nodelet::Nodelet">
+        <description>
+            Recompute odometry twist by differentiating poses.
+        </description>
+    </class>
     <class name="nav_utils/tf_to_odom"
            type="nav_utils::TransformToOdometryNodelet"
            base_class_type="nodelet::Nodelet">
