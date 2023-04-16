@@ -1,40 +1,38 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Node for publishing azimuth (yaw) measured by IMU; relative to base_link frame.
 """
-from re import X
 import rospy
 import tf2_ros
-import tf2_msgs.msg
-import std_msgs
 from sensor_msgs.msg import Imu
 import stamped_msgs.msg
 from tf.transformations import euler_from_quaternion, quaternion_multiply
 
-from numpy import deg2rad,rad2deg
 from math import pi
 
-class Quaternion():
+
+class Quaternion:
     """ Quaternion vector. """
-    def __init__(self,x=0,y=0,z=0,w=0):
+
+    def __init__(self, x=0, y=0, z=0, w=0):
         self.x = x
         self.y = y
         self.z = z
         self.w = w
-    
+
     def __arr__(self):
         """ Represent quaternion as array. """
         return [self.x, self.y, self.z, self.w]
-    
-    def __mul__(self,other):
+
+    def __mul__(self, other):
         """ Quaternion multiplication. """
         new = quaternion_multiply(self.__arr__(), other.__arr__())
-        new = Quaternion(new[0],new[1],new[2],new[3])
+        new = Quaternion(new[0], new[1], new[2], new[3])
         return new
-    
+
     def get_eul(self):
         """ Returns (roll, pitch, yaw) in radians. """
-        return euler_from_quaternion(self.__arr__())        
+        return euler_from_quaternion(self.__arr__())
 
     def get_yaw(self):
         """ Returns yaw. """
@@ -53,7 +51,7 @@ class Quaternion():
             raise ValueError("Coordinate system \"%s\" not supported. Supported coordinate systems are \"enu\" and \"ned\"." % coordinates)
 
 
-class QuaternionToAzimuth():
+class QuaternionToAzimuth:
     """ Listen to IMU quaternion orientation. Tranfsorm to base_link frame. Publish yaw (=azimuth). """
     def __init__(self, coordinates):
         self.q = Quaternion()
@@ -69,22 +67,22 @@ class QuaternionToAzimuth():
     def update_eul_vec(self, msg):
         """ Euler angles subscriber callback. """
         if self.trans:  # Check if transform has been looked up. If not do nothing.
-            q_imu = Quaternion(msg.orientation.x, \
-                            msg.orientation.y, \
-                            msg.orientation.z, \
-                            msg.orientation.w)
+            q_imu = Quaternion(msg.orientation.x,
+                               msg.orientation.y,
+                               msg.orientation.z,
+                               msg.orientation.w)
 
-            q_baselink = Quaternion(self.trans.transform.rotation.x, \
-                                    self.trans.transform.rotation.y, \
-                                    self.trans.transform.rotation.z, \
+            q_baselink = Quaternion(self.trans.transform.rotation.x,
+                                    self.trans.transform.rotation.y,
+                                    self.trans.transform.rotation.z,
                                     self.trans.transform.rotation.w)
 
             self.q = q_imu * q_baselink     # Quaternion multiplication (defined by class).
 
             pub_msg = stamped_msgs.msg.Float64()
             pub_msg.header = msg.header     # Copy header from IMU message (does not copy sequence).
-            pub_msg.data = self.q.get_azimuth(self.coordinates)  
-        
+            pub_msg.data = self.q.get_azimuth(self.coordinates)
+
             self.pub_azimuth.publish(pub_msg)
 
     def run(self):
@@ -98,13 +96,15 @@ class QuaternionToAzimuth():
                 continue
         rospy.spin()
 
+
 def main():
     rospy.init_node('azimuth')
 
     coordinates = rospy.get_param('~coordinates', "enu")   # Either enu or ned.
-    node = QuaternionToAzimuth(coordinates)                            
-    
+    node = QuaternionToAzimuth(coordinates)
+
     node.run()
+
 
 if __name__ == '__main__':
     main()
