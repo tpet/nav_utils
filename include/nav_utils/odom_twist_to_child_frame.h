@@ -34,6 +34,8 @@ private:
   ros::Publisher odom_out_pub_;
   ros::Subscriber odom_sub_;
 #endif
+  bool transform_linear_ {true};
+  bool transform_angular_ {true};
 
 public:
 #ifdef NAV_UTILS_ROS2

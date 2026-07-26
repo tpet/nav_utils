@@ -241,8 +241,10 @@ elseif(ament_cmake_FOUND)
         ${nav_msgs_TARGETS}
     )
     target_link_libraries(odom_twist_to_child_frame_comp PRIVATE
+        Eigen3::Eigen
         rclcpp_components::component
         tf2::tf2
+        tf2_eigen::tf2_eigen
         tf2_geometry_msgs::tf2_geometry_msgs
     )
     rclcpp_components_register_node(odom_twist_to_child_frame_comp
