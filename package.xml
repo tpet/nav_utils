@@ -1,4 +1,9 @@
-<package format="2">
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+SPDX-License-Identifier: BSD-3-Clause
+SPDX-FileCopyrightText: Czech Technical University in Prague
+-->
+<package format="3">
     <name>nav_utils</name>
     <version>1.0.0</version>
     <description>
@@ -9,33 +14,38 @@
 
     <url>https://github.com/tpet/nav_utils</url>
     <author>Tomas Petricek</author>
+    <author>Martin Pecka</author>
 
-    <buildtool_depend>catkin</buildtool_depend>
+    <buildtool_depend condition="$ROS_VERSION == 1">catkin</buildtool_depend>
+    <buildtool_depend condition="$ROS_VERSION == 2">ament_cmake</buildtool_depend>
 
     <depend>geometry_msgs</depend>
     <depend>nav_msgs</depend>
-    <depend>nodelet</depend>
+    <depend condition="$ROS_VERSION == 1">nodelet</depend>
+    <depend condition="$ROS_VERSION == 2">rclcpp_components</depend>
     <depend>pcl_conversions</depend>
     <depend>pcl_ros</depend>
-    <depend>roscpp</depend>
+    <depend condition="$ROS_VERSION == 1">roscpp</depend>
+    <depend condition="$ROS_VERSION == 2">rclcpp</depend>
     <depend>sensor_msgs</depend>
     <depend>std_msgs</depend>
     <depend>tf2</depend>
     <depend>tf2_msgs</depend>
-    <depend>tf2_client</depend>
+    <depend condition="$ROS_VERSION == 1">tf2_client</depend>
     <depend>tf2_eigen</depend>
     <depend>tf2_ros</depend>
     <depend>topic_tools</depend>
     
-    <build_depend>message_generation</build_depend>
-    <build_export_depend>message_runtime</build_export_depend>
-    <exec_depend>message_runtime</exec_depend>
+    <build_depend condition="$ROS_VERSION == 1">message_generation</build_depend>
+    <build_export_depend condition="$ROS_VERSION == 1">message_runtime</build_export_depend>
+    <exec_depend condition="$ROS_VERSION == 1">message_runtime</exec_depend>
     
-    <exec_depend>rosbag</exec_depend>
+    <exec_depend condition="$ROS_VERSION == 1">rosbag</exec_depend>
     <exec_depend>ros_numpy</exec_depend>
 
     <export>
-        <nodelet plugin="${prefix}/nav_utils_plugins.xml" />
+        <build_type condition="$ROS_VERSION == 1">catkin</build_type>
+        <build_type condition="$ROS_VERSION == 2">ament_cmake</build_type>
     </export>
 </package>
 
