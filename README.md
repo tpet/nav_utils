@@ -6,7 +6,7 @@
 Splits odometry into two parts, one of which is resolved via *tf*.<br>
 It allows to rename parent frame. 
 
-## `odom_to_tf`
+## `odom_to_tf` (ROS 1 + ROS 2)
 Converts odometry messages to *tf* transforms.
 
 ## `tf_to_odom`
