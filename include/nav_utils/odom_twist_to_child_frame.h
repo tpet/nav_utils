@@ -36,6 +36,8 @@ private:
 #endif
   bool transform_linear_ {true};
   bool transform_angular_ {true};
+  std::string parent_frame_id_;
+  std::string child_frame_id_;
 
 public:
 #ifdef NAV_UTILS_ROS2

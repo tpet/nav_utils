@@ -33,8 +33,12 @@ OdometryTwistToChildFrame::OdometryTwistToChildFrame(const rclcpp::NodeOptions& 
 {
   declare_parameter("transform_linear", transform_linear_);
   declare_parameter("transform_angular", transform_angular_);
+  declare_parameter("parent_frame", parent_frame_id_);
+  declare_parameter("child_frame", child_frame_id_);
   get_parameter("transform_linear", transform_linear_);
   get_parameter("transform_angular", transform_angular_);
+  get_parameter("parent_frame", parent_frame_id_);
+  get_parameter("child_frame", child_frame_id_);
 
   odom_out_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom_out", 5);
   odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
@@ -45,6 +49,8 @@ OdometryTwistToChildFrame::OdometryTwistToChildFrame(ros::NodeHandle &nh, ros::N
 {
   pnh.param("transform_linear", transform_linear_, transform_linear_);
   pnh.param("transform_angular", transform_angular_, transform_angular_);
+  pnh.param("parent_frame", parent_frame_id_, parent_frame_id_);
+  pnh.param("child_frame", child_frame_id_, child_frame_id_);
 
   odom_out_pub_ = nh.advertise<nav_msgs::Odometry>("odom_out", 5);
   odom_sub_ = nh.subscribe("odom", 5, &OdometryTwistToChildFrame::processOdometry, this);
@@ -58,6 +64,10 @@ void OdometryTwistToChildFrame::processOdometry(const Odometry &odom)
   const auto parent_to_child_tf = child_to_parent_tf.inverse();
   
   Odometry odom_out = odom;
+  if (!parent_frame_id_.empty())
+    odom_out.header.frame_id = parent_frame_id_;
+  if (!child_frame_id_.empty())
+    odom_out.child_frame_id = child_frame_id_;
   
   // Transform linear twist (just rotate the vector, do not apply translation!)
   if (transform_linear_)
