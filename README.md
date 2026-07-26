@@ -55,7 +55,7 @@ It allows collecting and republishing transforms in regular intervals.
 
 The `tf_connect` node allows to connect multiple disconnected TF trees by defining coincident frames.
 
-## `odom_twist_to_child_frame`
+## `odom_twist_to_child_frame` (ROS 1 + ROS 2)
 
 Some robot drivers incorrectly publish twist in odom frame instead of body frame. This node fixes it.
 

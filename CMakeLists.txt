@@ -232,9 +232,25 @@ elseif(ament_cmake_FOUND)
     )
     target_compile_definitions(${PROJECT_NAME}_includes INTERFACE NAV_UTILS_ROS2)
 
+    add_library(odom_twist_to_child_frame_comp SHARED
+        src/nav_utils/odom_twist_to_child_frame.cpp
+    )
+    target_link_libraries(odom_twist_to_child_frame_comp PUBLIC
+        rclcpp::rclcpp
+        ${PROJECT_NAME}_includes
+        ${nav_msgs_TARGETS}
+    )
+    target_link_libraries(odom_twist_to_child_frame_comp PRIVATE
+        rclcpp_components::component
+        tf2::tf2
+        tf2_geometry_msgs::tf2_geometry_msgs
+    )
+    rclcpp_components_register_node(odom_twist_to_child_frame_comp
+        PLUGIN "nav_utils::OdometryTwistToChildFrame" EXECUTABLE odom_twist_to_child_frame)
 
     ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
     install(TARGETS
+        odom_twist_to_child_frame_comp
         ${PROJECT_NAME}_includes
         EXPORT export_${PROJECT_NAME}
         ARCHIVE DESTINATION lib
