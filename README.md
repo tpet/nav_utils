@@ -2,7 +2,7 @@
 
 **ROS 2 upgrade status:** Most nodes are not ported. The ones that are have a note in the following text.
 
-## `odom_proc`
+## `odom_proc` (ROS 1 + ROS 2)
 Splits odometry into two parts, one of which is resolved via *tf*.<br>
 It allows to rename parent frame. 
 

@@ -1,11 +1,46 @@
 #include <nav_utils/odom_proc.h>
+
+#ifdef NAV_UTILS_ROS2
+#include <rclcpp/time.hpp>
+#include <tf2/convert.hpp>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_eigen/tf2_eigen.hpp>
+#else
+#include <tf2/convert.h>
 #include <tf2_client/tf2_client.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_ros/buffer.h>
-#include <message_filters/chain.h>
+#endif
 
 namespace nav_utils
 {
+
+#ifdef NAV_UTILS_ROS2
+using geometry_msgs::msg::TransformStamped;
+#else
+using geometry_msgs::TransformStamped;
+#endif
+
+#ifdef NAV_UTILS_ROS2
+OdometryProc::OdometryProc(const rclcpp::NodeOptions& options)
+  : rclcpp::Node("nav_utils", options),
+    renamed_parent_frame_(""),
+    split_child_frame_(""),
+    max_age_(std::numeric_limits<double>::infinity())
+{
+    declare_parameter("renamed_parent_frame", renamed_parent_frame_);
+    declare_parameter("split_child_frame", split_child_frame_);
+    declare_parameter("max_age", max_age_);
+    get_parameter("renamed_parent_frame", renamed_parent_frame_);
+    get_parameter("split_child_frame", split_child_frame_);
+    get_parameter("max_age", max_age_);
+
+    odom_out_pub_ = create_publisher<Odometry>("odom_out", 5);
+    tf_ = std::make_shared<tf2_ros::Buffer>(get_clock());
+    odom_sub_ = create_subscription<Odometry>(
+        "odom", 5, [this](const Odometry& msg) { this->odometryReceived(msg); });
+}
+#else
 OdometryProc::OdometryProc(ros::NodeHandle &nh, ros::NodeHandle &pnh):
         renamed_parent_frame_(""),
         split_child_frame_(""),
@@ -19,19 +54,20 @@ OdometryProc::OdometryProc(ros::NodeHandle &nh, ros::NodeHandle &pnh):
     tf_ = tf2_client::get_buffer(nh, pnh);
     odom_sub_ = nh.subscribe("odom", 5, &OdometryProc::odometryReceived, this);
 }
+#endif
 
-nav_msgs::Odometry OdometryProc::processOdometry(const nav_msgs::Odometry &odom)
+Odometry OdometryProc::processOdometry(const Odometry &odom)
 {
-    nav_msgs::Odometry odom_out = odom;
+    Odometry odom_out = odom;
     if (!renamed_parent_frame_.empty())
         odom_out.header.frame_id = renamed_parent_frame_;
     if (split_child_frame_.empty())
         return odom_out;
-    geometry_msgs::TransformStamped tf_cr = tf_->lookupTransform(
+    TransformStamped tf_cr = tf_->lookupTransform(
             odom.child_frame_id,
             split_child_frame_,
             odom_out.header.stamp,
-            ros::Duration(1.0));
+            {1, 0});
     Eigen::Isometry3d T_cr = tf2::transformToEigen(tf_cr.transform);
     Eigen::Isometry3d T_oc;
     tf2::convert(odom.pose.pose, T_oc);
@@ -41,23 +77,44 @@ nav_msgs::Odometry OdometryProc::processOdometry(const nav_msgs::Odometry &odom)
     return odom_out;
 }
 
-void OdometryProc::odometryReceived(const nav_msgs::Odometry &odom)
+void OdometryProc::odometryReceived(const Odometry &odom)
 {
+#ifdef NAV_UTILS_ROS2
+    double age = (now() - odom.header.stamp).seconds();
+#else
     double age = (ros::Time::now() - odom.header.stamp).toSec();
+#endif
     if (age > max_age_)
     {
-        ROS_WARN_THROTTLE(1.0, "Skipping odometry too old (%.3g s > %.3g s).",
+#ifdef NAV_UTILS_ROS2
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Skipping odometry too old (%.3g s > %.3g s).",
                 age, max_age_);
+#else
+        ROS_WARN_THROTTLE(1.0, "Skipping odometry too old (%.3g s > %.3g s).", age, max_age_);
+#endif
         return;
     }
     try {
-        nav_msgs::Odometry odom_out = processOdometry(odom);
+        Odometry odom_out = processOdometry(odom);
+#ifdef NAV_UTILS_ROS2
+        odom_out_pub_->publish(odom_out);
+#else
         odom_out_pub_.publish(odom_out);
+#endif
     }
     catch (tf2::TransformException &ex)
     {
+#ifdef NAV_UTILS_ROS2
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Transform lookup failed: %s.", ex.what());
+#else
         ROS_WARN_THROTTLE(1.0, "Transform lookup failed: %s.", ex.what());
+#endif
     }
 }
 
 }
+
+#ifdef NAV_UTILS_ROS2
+#include <rclcpp_components/register_node_macro.hpp>
+RCLCPP_COMPONENTS_REGISTER_NODE(nav_utils::OdometryProc)
+#endif

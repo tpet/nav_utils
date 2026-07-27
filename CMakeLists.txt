@@ -267,8 +267,28 @@ elseif(ament_cmake_FOUND)
     rclcpp_components_register_node(odom_to_tf_comp
         PLUGIN "nav_utils::OdometryToTransform" EXECUTABLE odom_to_tf)
 
+    add_library(odom_proc_comp SHARED
+        src/nav_utils/odom_proc.cpp
+    )
+    target_link_libraries(odom_proc_comp PUBLIC
+        Eigen3::Eigen
+        rclcpp::rclcpp
+        tf2_ros::tf2_ros
+        ${PROJECT_NAME}_includes
+        ${nav_msgs_TARGETS}
+    )
+    target_link_libraries(odom_proc_comp PRIVATE
+        rclcpp_components::component
+        tf2::tf2
+        tf2_eigen::tf2_eigen
+        ${geometry_msgs_TARGETS}
+    )
+    rclcpp_components_register_node(odom_proc_comp
+        PLUGIN "nav_utils::OdometryProc" EXECUTABLE odom_proc)
+
     ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
     install(TARGETS
+        odom_proc_comp
         odom_to_tf_comp
         odom_twist_to_child_frame_comp
         ${PROJECT_NAME}_includes
