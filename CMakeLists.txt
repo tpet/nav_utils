@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10.2)
 project(nav_utils)
 
+set(CMAKE_CXX_STANDARD 17)
+
 find_package(ament_cmake QUIET)
 #catkin_lint: ignore_once missing_required
 find_package(catkin QUIET)
@@ -232,65 +234,49 @@ elseif(ament_cmake_FOUND)
     )
     target_compile_definitions(${PROJECT_NAME}_includes INTERFACE NAV_UTILS_ROS2)
 
-    add_library(odom_twist_to_child_frame_comp SHARED
-        src/nav_utils/odom_twist_to_child_frame.cpp
-    )
+    add_library(odom_twist_to_child_frame_comp SHARED src/nav_utils/odom_twist_to_child_frame.cpp)
     target_link_libraries(odom_twist_to_child_frame_comp PUBLIC
-        rclcpp::rclcpp
-        ${PROJECT_NAME}_includes
-        ${nav_msgs_TARGETS}
+        rclcpp::rclcpp ${PROJECT_NAME}_includes ${nav_msgs_TARGETS}
     )
     target_link_libraries(odom_twist_to_child_frame_comp PRIVATE
-        Eigen3::Eigen
-        rclcpp_components::component
-        tf2::tf2
-        tf2_eigen::tf2_eigen
-        tf2_geometry_msgs::tf2_geometry_msgs
+        Eigen3::Eigen rclcpp_components::component tf2::tf2 tf2_eigen::tf2_eigen tf2_geometry_msgs::tf2_geometry_msgs
     )
     rclcpp_components_register_node(odom_twist_to_child_frame_comp
         PLUGIN "nav_utils::OdometryTwistToChildFrame" EXECUTABLE odom_twist_to_child_frame)
 
-    add_library(odom_to_tf_comp SHARED
-        src/nav_utils/odom_to_tf.cpp
-    )
+    add_library(odom_to_tf_comp SHARED src/nav_utils/odom_to_tf.cpp)
     target_link_libraries(odom_to_tf_comp PUBLIC
-        rclcpp::rclcpp
-        ${PROJECT_NAME}_includes
-        ${nav_msgs_TARGETS}
+        rclcpp::rclcpp ${PROJECT_NAME}_includes ${nav_msgs_TARGETS}
     )
     target_link_libraries(odom_to_tf_comp PRIVATE
-        Eigen3::Eigen
-        rclcpp_components::component
-        tf2::tf2
-        tf2_eigen::tf2_eigen
+        Eigen3::Eigen rclcpp_components::component tf2::tf2 tf2_eigen::tf2_eigen
     )
-    rclcpp_components_register_node(odom_to_tf_comp
-        PLUGIN "nav_utils::OdometryToTransform" EXECUTABLE odom_to_tf)
+    rclcpp_components_register_node(odom_to_tf_comp PLUGIN "nav_utils::OdometryToTransform" EXECUTABLE odom_to_tf)
 
-    add_library(odom_proc_comp SHARED
-        src/nav_utils/odom_proc.cpp
-    )
+    add_library(odom_proc_comp SHARED src/nav_utils/odom_proc.cpp)
     target_link_libraries(odom_proc_comp PUBLIC
-        Eigen3::Eigen
-        rclcpp::rclcpp
-        tf2_ros::tf2_ros
-        ${PROJECT_NAME}_includes
-        ${nav_msgs_TARGETS}
+        Eigen3::Eigen rclcpp::rclcpp tf2_ros::tf2_ros ${PROJECT_NAME}_includes ${nav_msgs_TARGETS}
     )
     target_link_libraries(odom_proc_comp PRIVATE
-        rclcpp_components::component
-        tf2::tf2
-        tf2_eigen::tf2_eigen
-        ${geometry_msgs_TARGETS}
+        rclcpp_components::component tf2::tf2 tf2_eigen::tf2_eigen ${geometry_msgs_TARGETS}
     )
-    rclcpp_components_register_node(odom_proc_comp
-        PLUGIN "nav_utils::OdometryProc" EXECUTABLE odom_proc)
+    rclcpp_components_register_node(odom_proc_comp PLUGIN "nav_utils::OdometryProc" EXECUTABLE odom_proc)
+
+    add_library(tf_copy_comp SHARED src/nav_utils/tf_copy.cpp)
+    target_link_libraries(tf_copy_comp PUBLIC
+        rclcpp::rclcpp tf2_ros::tf2_ros ${PROJECT_NAME}_includes ${geometry_msgs_TARGETS}
+    )
+    target_link_libraries(tf_copy_comp PRIVATE
+        rclcpp_components::component tf2_eigen::tf2_eigen tf2_geometry_msgs::tf2_geometry_msgs
+    )
+    rclcpp_components_register_node(tf_copy_comp PLUGIN "nav_utils::TfCopy" EXECUTABLE tf_copy)
 
     ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
     install(TARGETS
         odom_proc_comp
         odom_to_tf_comp
         odom_twist_to_child_frame_comp
+        tf_copy_comp
         ${PROJECT_NAME}_includes
         EXPORT export_${PROJECT_NAME}
         ARCHIVE DESTINATION lib

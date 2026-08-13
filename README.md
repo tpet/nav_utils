@@ -30,13 +30,15 @@ Takes `parent_frame`->`child_frame` transform and republishes its inverse as
 `child_frame`->`new_parent_frame` on `publish_frequency`, always taking the
 latest available transform and stamping it with current time.
 
-## `tf_copy`
+## `tf_copy` (ROS 1 + ROS 2)
 Copy a transform to another place in the tree. Reads `parent_frame`->`child_frame`
 TF and publishes it as `new_parent_frame`->`new_child_frame`. If `invert_tf` is true,
 then the transforms gets inverted (just the geometry, not the frame names).
 If `static_tf` is true, the transform is only published when it actually changes,
 and is published by a static transform publisher. `publish_frequency` specifies the
-frequency on which the TF is updated, and if it is nonstatic, the also published.
+frequency on which the TF is updated, and if it is nonstatic, then also published (unless
+the transform is a direct link in the tree, in which case it gets published as often as the
+source transform changes).
 `error_if_tf_missing` specifies, whether ROS should issue an error in console if the source
 TF is missing.
 
@@ -63,7 +65,7 @@ Some robot drivers incorrectly publish twist in odom frame instead of body frame
 
 Some robot drivers do not publish twist or publish a wrong one. This node computes it from differences of the poses.
 
-# Nodelets
+# Nodelets (ROS 1)
 
 As above, in nodelets.
 
@@ -76,3 +78,15 @@ As above, in nodelets.
 ## `nav_utils/tf_fast_repeater`
 
 ## `nav_utils/tf_copy`
+
+# Components (ROS 2)
+
+As above, in components.
+
+## `nav_utils::OdometryToTransform`
+
+## `nav_utils::OdometryProc`
+
+## `nav_utils::OdometryTwistToChildFrame`
+
+## `nav_utils::TfCopy`
