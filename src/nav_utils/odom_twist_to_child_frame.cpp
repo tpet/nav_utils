@@ -33,25 +33,34 @@ using namespace std::chrono_literals;
 
 #ifdef NAV_UTILS_ROS2
 OdometryTwistToChildFrame::OdometryTwistToChildFrame(const rclcpp::NodeOptions& options)
-  : rclcpp::Node("nav_utils", options), lazy_(false), transform_linear_(true), transform_angular_(true)
+  : rclcpp::Node("nav_utils", options), lazy_(false), transform_linear_(true), transform_angular_(true), queue_size_(10)
 {
+  int64_t queue_size(static_cast<int64_t>(queue_size_));
+
   declare_parameter("transform_linear", transform_linear_);
   declare_parameter("transform_angular", transform_angular_);
   declare_parameter("parent_frame", parent_frame_id_);
   declare_parameter("child_frame", child_frame_id_);
   declare_parameter("lazy", lazy_);
+  declare_parameter("queue_size", queue_size);
   get_parameter("transform_linear", transform_linear_);
   get_parameter("transform_angular", transform_angular_);
   get_parameter("parent_frame", parent_frame_id_);
   get_parameter("child_frame", child_frame_id_);
   get_parameter("lazy", lazy_);
+  get_parameter("queue_size", queue_size);
+  if (queue_size >= 0)
+    queue_size_ = static_cast<size_t>(queue_size);
 
-  odom_out_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom_out", 5);
+  odom_out_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom_out", queue_size_);
+
+  rclcpp::SubscriptionOptions opts;
+  opts.qos_overriding_options = rclcpp::QosOverridingOptions::with_default_policies();
 
   if (!lazy_)
   {
     odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-      "odom", 5, [this](const nav_msgs::msg::Odometry& msg) { this->processOdometry(msg); });
+      "odom", queue_size_, [this](const nav_msgs::msg::Odometry& msg) { this->processOdometry(msg); }, opts);
   }
   else
   {
@@ -60,11 +69,10 @@ OdometryTwistToChildFrame::OdometryTwistToChildFrame(const rclcpp::NodeOptions& 
       return odom_out_pub_->get_subscription_count() != 0 || odom_out_pub_->get_intra_process_subscription_count() != 0;
     };
 
-    lazy_conn_timer_ = create_wall_timer(100ms, [this, has_subs] {
+    lazy_conn_timer_ = create_wall_timer(100ms, [this, has_subs, opts] {
       if (odom_sub_ == nullptr && has_subs()) {
         odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-            "odom", 5, [this](const nav_msgs::msg::Odometry& msg) { this->processOdometry(msg);}
-          );
+          "odom", queue_size_, [this](const nav_msgs::msg::Odometry& msg) { this->processOdometry(msg);}, opts);
       }
       else if (odom_sub_ != nullptr && !has_subs()) {
         odom_sub_.reset();
@@ -74,15 +82,19 @@ OdometryTwistToChildFrame::OdometryTwistToChildFrame(const rclcpp::NodeOptions& 
 }
 #else
 OdometryTwistToChildFrame::OdometryTwistToChildFrame(ros::NodeHandle &nh, ros::NodeHandle &pnh)
-  : transform_linear_(true), transform_angular_(true)
+  : transform_linear_(true), transform_angular_(true), queue_size_(10)
 {
+  int queue_size(static_cast<int>(queue_size_));
   pnh.param("transform_linear", transform_linear_, transform_linear_);
   pnh.param("transform_angular", transform_angular_, transform_angular_);
   pnh.param("parent_frame", parent_frame_id_, parent_frame_id_);
   pnh.param("child_frame", child_frame_id_, child_frame_id_);
+  pnh.param("queue_size", queue_size, queue_size);
+  if (queue_size >= 0)
+    queue_size_ = static_cast<size_t>(queue_size);
 
-  odom_out_pub_ = nh.advertise<nav_msgs::Odometry>("odom_out", 5);
-  odom_sub_ = nh.subscribe("odom", 5, &OdometryTwistToChildFrame::processOdometry, this);
+  odom_out_pub_ = nh.advertise<nav_msgs::Odometry>("odom_out", queue_size_);
+  odom_sub_ = nh.subscribe("odom", queue_size_, &OdometryTwistToChildFrame::processOdometry, this);
 }
 #endif
 

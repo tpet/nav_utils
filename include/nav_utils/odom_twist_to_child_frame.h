@@ -40,6 +40,7 @@ private:
   bool transform_angular_;
   std::string parent_frame_id_;
   std::string child_frame_id_;
+  size_t queue_size_;
 
 public:
 #ifdef NAV_UTILS_ROS2
