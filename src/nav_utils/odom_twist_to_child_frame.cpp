@@ -1,3 +1,5 @@
+#include <chrono>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
@@ -27,25 +29,52 @@ using geometry_msgs::msg::Transform;
 using geometry_msgs::Transform;
 #endif
 
+using namespace std::chrono_literals;
+
 #ifdef NAV_UTILS_ROS2
 OdometryTwistToChildFrame::OdometryTwistToChildFrame(const rclcpp::NodeOptions& options)
-  : rclcpp::Node("nav_utils", options)
+  : rclcpp::Node("nav_utils", options), lazy_(false), transform_linear_(true), transform_angular_(true)
 {
   declare_parameter("transform_linear", transform_linear_);
   declare_parameter("transform_angular", transform_angular_);
   declare_parameter("parent_frame", parent_frame_id_);
   declare_parameter("child_frame", child_frame_id_);
+  declare_parameter("lazy", lazy_);
   get_parameter("transform_linear", transform_linear_);
   get_parameter("transform_angular", transform_angular_);
   get_parameter("parent_frame", parent_frame_id_);
   get_parameter("child_frame", child_frame_id_);
+  get_parameter("lazy", lazy_);
 
   odom_out_pub_ = create_publisher<nav_msgs::msg::Odometry>("odom_out", 5);
-  odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
-    "odom", 5, [this](const nav_msgs::msg::Odometry& msg) { this->processOdometry(msg); });
+
+  if (!lazy_)
+  {
+    odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+      "odom", 5, [this](const nav_msgs::msg::Odometry& msg) { this->processOdometry(msg); });
+  }
+  else
+  {
+    const auto has_subs = [this]
+    {
+      return odom_out_pub_->get_subscription_count() != 0 || odom_out_pub_->get_intra_process_subscription_count() != 0;
+    };
+
+    lazy_conn_timer_ = create_wall_timer(100ms, [this, has_subs] {
+      if (odom_sub_ == nullptr && has_subs()) {
+        odom_sub_ = create_subscription<nav_msgs::msg::Odometry>(
+            "odom", 5, [this](const nav_msgs::msg::Odometry& msg) { this->processOdometry(msg);}
+          );
+      }
+      else if (odom_sub_ != nullptr && !has_subs()) {
+        odom_sub_.reset();
+      }
+    });
+  }
 }
 #else
 OdometryTwistToChildFrame::OdometryTwistToChildFrame(ros::NodeHandle &nh, ros::NodeHandle &pnh)
+  : transform_linear_(true), transform_angular_(true)
 {
   pnh.param("transform_linear", transform_linear_, transform_linear_);
   pnh.param("transform_angular", transform_angular_, transform_angular_);

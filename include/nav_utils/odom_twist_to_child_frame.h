@@ -30,12 +30,14 @@ private:
 #ifdef NAV_UTILS_ROS2
   rclcpp::Publisher<Odometry>::SharedPtr odom_out_pub_;
   rclcpp::Subscription<Odometry>::SharedPtr odom_sub_;
+  bool lazy_;
+  rclcpp::TimerBase::SharedPtr lazy_conn_timer_;
 #else
   ros::Publisher odom_out_pub_;
   ros::Subscriber odom_sub_;
 #endif
-  bool transform_linear_ {true};
-  bool transform_angular_ {true};
+  bool transform_linear_;
+  bool transform_angular_;
   std::string parent_frame_id_;
   std::string child_frame_id_;
 
